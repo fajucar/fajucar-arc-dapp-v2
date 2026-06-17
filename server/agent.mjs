@@ -374,9 +374,9 @@ const GROQ_TOOLS = TOOLS.map(t => ({
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 router.post('/chat', async (req, res) => {
-  const apiKey = (process.env.GEMINI_API_KEY || '').trim()
+  const apiKey = (process.env.GROQ_API_KEY || '').trim()
   if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY (Groq key) não configurada no .env' })
+    return res.status(500).json({ error: 'GROQ_API_KEY não configurada no .env' })
   }
 
   const { messages = [], personality = 'explorer', walletAddress, withdrawalAddress, agentName } = req.body
