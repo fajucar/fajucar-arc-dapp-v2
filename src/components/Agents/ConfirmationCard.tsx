@@ -67,7 +67,7 @@ export function ConfirmationCard({
           type="button"
           onClick={onCancel}
           disabled={disabled}
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-600/60 bg-slate-800/50 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-700/60 disabled:opacity-40 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-600/60 bg-slate-800/50 py-2.5 min-h-[44px] text-xs font-semibold text-slate-300 hover:bg-slate-700/60 disabled:opacity-40 transition-colors"
         >
           <X className="h-3.5 w-3.5" />
           {t('confirmation.cancel')}
@@ -76,7 +76,7 @@ export function ConfirmationCard({
           type="button"
           onClick={onConfirm}
           disabled={disabled}
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 py-2 text-xs font-bold text-white hover:opacity-90 disabled:opacity-40 transition-all shadow-md shadow-cyan-500/20"
+          className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 py-2.5 min-h-[44px] text-xs font-bold text-white hover:opacity-90 disabled:opacity-40 transition-all shadow-md shadow-cyan-500/20"
         >
           <Check className="h-3.5 w-3.5" />
           {t('confirmation.confirm')}

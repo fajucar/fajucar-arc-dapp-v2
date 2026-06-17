@@ -111,7 +111,7 @@ export function TokenSelectModal({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.96 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-md rounded-2xl border border-slate-700/50 bg-slate-900/95 backdrop-blur-xl shadow-2xl overflow-hidden"
+          className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700/50 bg-slate-900/95 backdrop-blur-xl shadow-2xl"
         >
           <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">{title}</h3>
@@ -130,7 +130,7 @@ export function TokenSelectModal({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar token..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50 text-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50 text-base sm:text-sm"
               />
             </div>
             <div className="max-h-80 overflow-y-auto space-y-2">

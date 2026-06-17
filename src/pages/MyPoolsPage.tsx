@@ -517,7 +517,7 @@ export function MyPoolsPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-md rounded-2xl border border-slate-700/50 bg-slate-900/95 backdrop-blur-xl p-6 shadow-2xl"
+                className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700/50 bg-slate-900/95 backdrop-blur-xl p-6 shadow-2xl"
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white">Manage {managePool.token0.symbol} / {managePool.token1.symbol}</h3>
@@ -560,7 +560,7 @@ export function MyPoolsPage() {
                         value={amount0}
                         onChange={(e) => setAmount0(e.target.value)}
                         placeholder="0.0"
-                        className="w-full bg-slate-800/60 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50"
+                        className="w-full bg-slate-800/60 border border-slate-600 rounded-xl px-4 py-3 text-base sm:text-sm text-white focus:outline-none focus:border-cyan-500/50 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                       />
                     </div>
                     <div>
@@ -570,7 +570,7 @@ export function MyPoolsPage() {
                         value={amount1}
                         onChange={(e) => setAmount1(e.target.value)}
                         placeholder="0.0"
-                        className="w-full bg-slate-800/60 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50"
+                        className="w-full bg-slate-800/60 border border-slate-600 rounded-xl px-4 py-3 text-base sm:text-sm text-white focus:outline-none focus:border-cyan-500/50 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                       />
                     </div>
                     <div className="flex gap-3">

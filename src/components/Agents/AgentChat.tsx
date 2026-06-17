@@ -529,7 +529,7 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
         {displayMessages.map((msg, i) => {
           if (msg.kind === 'user') return (
             <div key={i} className="flex justify-end">
-              <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-gradient-to-r from-cyan-500 to-blue-600 px-3.5 py-2.5 text-sm text-white shadow-md shadow-cyan-500/15">
+              <div className="max-w-[85%] sm:max-w-[80%] rounded-2xl rounded-tr-sm bg-gradient-to-r from-cyan-500 to-blue-600 px-3.5 py-2.5 text-sm text-white shadow-md shadow-cyan-500/15 break-words">
                 {msg.text}
               </div>
             </div>
@@ -540,7 +540,7 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
               <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center shrink-0 mt-0.5">
                 <Bot className="h-3.5 w-3.5 text-cyan-400" />
               </div>
-              <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-slate-800/60 border border-slate-700/50 px-3.5 py-2.5 text-sm text-slate-200 whitespace-pre-wrap">
+              <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-slate-800/60 border border-slate-700/50 px-3.5 py-2.5 text-sm text-slate-200 whitespace-pre-wrap break-words">
                 {msg.text}
               </div>
             </div>
@@ -575,7 +575,7 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
               <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center shrink-0 mt-0.5">
                 <Bot className="h-3.5 w-3.5 text-cyan-400" />
               </div>
-              <div className="rounded-2xl rounded-tl-sm border border-slate-700/50 bg-slate-800/60 px-3.5 py-3 min-w-[200px]">
+              <div className="rounded-2xl rounded-tl-sm border border-slate-700/50 bg-slate-800/60 px-3.5 py-3 w-full min-w-0 sm:min-w-[200px] sm:w-auto max-w-full overflow-x-auto">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2.5">{t('agentChat.balancesTitle')}</p>
                 <div className="space-y-2">
                   {msg.items.map(({ symbol, amount }) => {
@@ -618,7 +618,7 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
               <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center shrink-0 mt-0.5">
                 <Bot className="h-3.5 w-3.5 text-cyan-400" />
               </div>
-              <div className="rounded-2xl rounded-tl-sm border border-slate-700/50 bg-slate-800/60 px-3.5 py-3 min-w-[220px]">
+              <div className="rounded-2xl rounded-tl-sm border border-slate-700/50 bg-slate-800/60 px-3.5 py-3 w-full min-w-0 sm:min-w-[220px] sm:w-auto max-w-full overflow-x-auto">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2.5">{t('agentChat.txHistoryTitle')}</p>
                 <div className="space-y-2">
                   {msg.items.map((tx, idx) => {
@@ -709,12 +709,12 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
           onChange={e => setInput(e.target.value)}
           placeholder={isBlocked ? t('agentChat.placeholderWaiting') : t('agentChat.placeholderInput')}
           disabled={isBlocked}
-          className="flex-1 rounded-xl border border-slate-700/60 bg-slate-800/50 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 transition-colors"
+          className="flex-1 w-full min-w-0 rounded-xl border border-slate-700/60 bg-slate-800/50 px-3.5 py-3 text-base sm:text-sm text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 transition-colors"
         />
         <button
           type="submit"
           disabled={isBlocked || !input.trim()}
-          className="w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90 disabled:opacity-40 transition-all shadow-md shadow-cyan-500/20 shrink-0"
+          className="w-11 h-11 flex items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90 disabled:opacity-40 transition-all shadow-md shadow-cyan-500/20 shrink-0"
         >
           <Send className="h-4 w-4" />
         </button>

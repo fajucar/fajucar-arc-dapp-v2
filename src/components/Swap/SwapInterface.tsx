@@ -1978,7 +1978,7 @@ export function SwapInterface() {
             {settingsOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} aria-hidden="true" />
-                <div className="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-xl border border-slate-600/60 bg-slate-900/95 backdrop-blur-xl p-4 shadow-xl">
+                <div className="absolute right-0 top-full mt-1 z-50 w-[calc(100vw-2rem)] max-w-[240px] min-w-[200px] rounded-xl border border-slate-600/60 bg-slate-900/95 backdrop-blur-xl p-4 shadow-xl">
                   <div className="text-xs text-slate-400 mb-2">Tolerância de slippage</div>
                   <div className="flex items-center gap-2 mb-2">
                     {[1, 2, 5, 10].map((v) => (
@@ -1986,7 +1986,7 @@ export function SwapInterface() {
                         key={v}
                         type="button"
                         onClick={() => setSlippage(v)}
-                        className={`rounded-lg px-2 py-1 text-xs font-medium transition-colors ${slippage === v ? 'bg-cyan-500 text-black' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                        className={`rounded-lg px-2 py-1.5 min-h-[36px] text-xs font-medium transition-colors ${slippage === v ? 'bg-cyan-500 text-black' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                       >
                         {v}%
                       </button>
@@ -2000,7 +2000,7 @@ export function SwapInterface() {
                       min="0"
                       max="10"
                       step="0.1"
-                      className="w-20 bg-slate-800/60 border border-slate-600/60 rounded-lg px-3 py-2 text-sm text-white text-right focus:outline-none focus:border-cyan-500/50"
+                      className="w-20 bg-slate-800/60 border border-slate-600/60 rounded-lg px-3 py-2 text-base sm:text-sm text-white text-right focus:outline-none focus:border-cyan-500/50 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                     />
                     <span className="text-slate-400 text-sm">% (máx 10%)</span>
                   </div>
@@ -2037,7 +2037,7 @@ export function SwapInterface() {
               value={amountFrom}
               onChange={(e) => handleAmountFromChange(e.target.value)}
               placeholder="0.0"
-              className="flex-1 bg-transparent border-none text-right text-2xl font-semibold text-white placeholder-slate-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="flex-1 min-w-0 bg-transparent border-none text-right text-2xl font-semibold text-white placeholder-slate-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
         </div>
@@ -2076,7 +2076,7 @@ export function SwapInterface() {
               placeholder="Selecionar"
               className="shrink-0"
             />
-            <div className="flex-1 text-right">
+            <div className="flex-1 min-w-0 text-right">
               {isCalculating ? (
                 <Loader2 className="h-6 w-6 text-slate-500 animate-spin inline-block" />
               ) : (

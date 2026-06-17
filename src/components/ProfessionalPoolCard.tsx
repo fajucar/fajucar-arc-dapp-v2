@@ -73,9 +73,9 @@ export function ProfessionalPoolCard({
       className="rounded-2xl border border-slate-700/50 bg-slate-800/30 shadow-lg shadow-black/20 p-6 transition-all duration-200 hover:border-slate-600/60 hover:shadow-xl hover:shadow-black/25"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex -space-x-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex -space-x-2 shrink-0">
             <div
               className="w-10 h-10 rounded-full border-2 border-slate-900 flex items-center justify-center text-sm font-bold text-white z-10"
               style={{ backgroundColor: token0Color }}
@@ -90,8 +90,8 @@ export function ProfessionalPoolCard({
             </div>
           </div>
 
-          <div>
-            <h3 className="text-lg font-semibold text-white">{pool.pairName}</h3>
+          <div className="min-w-0">
+            <h3 className="text-lg font-semibold text-white truncate">{pool.pairName}</h3>
             <div className="flex items-center gap-2">
               <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-600/60 text-slate-300 border border-slate-500/40">
                 {pool.feeTier}
@@ -105,7 +105,7 @@ export function ProfessionalPoolCard({
 
         <button
           onClick={onAddLiquidity}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30"
+          className="inline-flex items-center gap-2 px-4 py-2 min-h-[40px] rounded-xl text-sm font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 shrink-0"
         >
           <Plus className="h-4 w-4" />
           Add

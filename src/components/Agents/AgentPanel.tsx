@@ -269,12 +269,12 @@ function WithdrawalSection({
             placeholder="Valor USDC"
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/,/g, '.'))}
-            className="flex-1 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
+            className="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-base sm:text-sm text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
           />
           <button
             onClick={() => setConfirmStep(true)}
             disabled={!amount || parseFloat(amount) <= 0}
-            className="flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 disabled:opacity-40 transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 min-h-[44px] text-xs font-semibold text-amber-300 hover:bg-amber-500/20 disabled:opacity-40 transition-all shrink-0"
           >
             <Send className="h-3.5 w-3.5" />
             Sacar
@@ -590,7 +590,7 @@ export function PersonalizarModal({ profile, onSave, onClose }: ModalProps) {
                   type="text"
                   value={draft.name}
                   onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-base sm:text-sm text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
                 />
               </div>
 

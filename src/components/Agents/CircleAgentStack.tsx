@@ -35,16 +35,20 @@ function FajuPay() {
     ? `${window.location.origin}/pay?to=${address}`
     : ''
 
-  const qrValue = amount && address
-    ? `ethereum:${address}?value=${parseFloat(amount) * 1e6}`
-    : address ?? ''
+  const qrValue = (() => {
+    if (!address) return ''
+    const amountValue = parseFloat(amount)
+    if (!amount || isNaN(amountValue) || amountValue <= 0) return `ethereum:${address}@5042002`
+    const valueInWei = Math.round(amountValue * 1_000_000)
+    return `ethereum:0x3600000000000000000000000000000000000000@5042002/transfer?address=${address}&uint256=${valueInWei}`
+  })()
 
   const copyAddress = () => {
     if (!address) return
     navigator.clipboard.writeText(address)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-    toast.success('Endereço copiado!')
+    toast.success('Address copied!')
   }
 
   const copyLink = () => {
@@ -52,7 +56,7 @@ function FajuPay() {
     navigator.clipboard.writeText(paymentLink)
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 2000)
-    toast.success('Link copiado!')
+    toast.success('Link copied!')
   }
 
   if (!isConnected) {
@@ -71,7 +75,7 @@ function FajuPay() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h3 className="text-lg font-bold text-white">FajuPay</h3>
           <p className="text-xs text-slate-400 mt-0.5">{t('fajuPay.subtitle')}</p>
@@ -80,14 +84,14 @@ function FajuPay() {
           <button
             type="button"
             onClick={() => setMode('receive')}
-            className={`px-3 py-1 rounded text-xs font-semibold transition-all ${mode === 'receive' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-3 py-2.5 min-h-[40px] rounded text-xs font-semibold transition-all ${mode === 'receive' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:text-white'}`}
           >
             {t('fajuPay.receive')}
           </button>
           <button
             type="button"
             onClick={() => setMode('send')}
-            className={`px-3 py-1 rounded text-xs font-semibold transition-all ${mode === 'send' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-3 py-2.5 min-h-[40px] rounded text-xs font-semibold transition-all ${mode === 'send' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:text-white'}`}
           >
             {t('fajuPay.send')}
           </button>
@@ -102,14 +106,14 @@ function FajuPay() {
               placeholder={t('fajuPay.amountPlaceholder')}
               value={amount}
               onChange={e => setAmount(e.target.value)}
-              className="flex-1 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50"
+              className="flex-1 w-full min-w-0 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-3 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
             />
             <span className="flex items-center px-3 bg-slate-800/60 border border-slate-700 rounded-lg text-xs text-slate-400 font-semibold">USDC</span>
           </div>
 
           <div className="flex flex-col items-center gap-3">
-            <div className="bg-white p-3 rounded-xl shadow-lg">
-              <QRCode value={qrValue} size={160} />
+            <div className="bg-white p-3 rounded-xl shadow-lg w-full max-w-[200px] mx-auto flex items-center justify-center">
+              <QRCode value={qrValue} size={160} style={{ width: '100%', height: 'auto', maxWidth: '160px' }} />
             </div>
             <div className="w-full rounded-lg bg-slate-800/60 border border-slate-700 px-3 py-2 flex items-center gap-2">
               <span className="text-xs text-slate-400 font-mono flex-1 truncate">{address}</span>
@@ -143,18 +147,18 @@ function FajuPay() {
         <div className="space-y-3">
           <input
             type="text"
-            placeholder="Endereço do destinatário (0x...)"
+            placeholder="Recipient address (0x...)"
             value={recipient}
             onChange={e => setRecipient(e.target.value)}
-            className="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50 font-mono"
+            className="w-full min-w-0 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-3 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50 font-mono"
           />
           <div className="flex gap-2">
             <input
               type="number"
-              placeholder="Valor"
+              placeholder="Amount"
               value={amount}
               onChange={e => setAmount(e.target.value)}
-              className="flex-1 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50"
+              className="flex-1 w-full min-w-0 bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-3 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/50 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
             />
             <span className="flex items-center px-3 bg-slate-800/60 border border-slate-700 rounded-lg text-xs text-slate-400 font-semibold">USDC</span>
           </div>
@@ -172,10 +176,10 @@ function FajuPay() {
                   body: JSON.stringify({ fromAddress: address, toAddress: recipient, amountUsdc: amount }),
                 })
                 const data = await res.json()
-                if (!res.ok) throw new Error(data.error ?? 'Erro ao enviar')
+                if (!res.ok) throw new Error(data.error ?? 'Failed to send')
                 const id = data.txHash ?? data.transactionId
                 setTxId(id)
-                toast.success(`Enviado! ${id?.slice(0, 10)}...`)
+                toast.success(`Sent! ${id?.slice(0, 10)}...`)
                 setRecipient('')
                 setAmount('')
               } catch (err: any) {
@@ -184,14 +188,15 @@ function FajuPay() {
                 setSending(false)
               }
             }}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-all"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-all"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {sending ? 'Enviando...' : 'Enviar USDC'}
+            {sending ? 'Sending...' : 'Send USDC'}
           </button>
+
           {txId && (
             <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-2 text-center">
-              <p className="text-xs text-green-400">✅ Transação enviada</p>
+              <p className="text-xs text-green-400">✅ Transaction sent</p>
               <p className="text-[10px] text-slate-500 font-mono mt-0.5">{txId}</p>
             </div>
           )}
@@ -260,7 +265,7 @@ function MeuAgenteTab() {
 
   return (
     <>
-      <div className="flex flex-col gap-2 overflow-visible" style={{ height: '640px' }}>
+      <div className="flex flex-col gap-2 overflow-visible" style={{ height: 'clamp(480px, 80vh, 640px)' }}>
 
         {/* ── Section 1: Agent Profile ── */}
         <div className="shrink-0 rounded-xl border border-cyan-500/20 bg-gradient-to-br from-slate-900/80 to-[#0a0a1a]/80 p-2.5 space-y-1.5">
@@ -286,7 +291,7 @@ function MeuAgenteTab() {
             <button
               type="button"
               onClick={() => setModalOpen(true)}
-              className="flex-shrink-0 flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/20 transition-all"
+              className="flex-shrink-0 flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/20 transition-all"
             >
               {isConfigured ? '✏️' : <Sparkles className="h-3 w-3" />}
               {isConfigured ? 'Editar' : 'Personalizar'}
@@ -400,21 +405,21 @@ export function CircleAgentStack() {
       className="rounded-2xl border border-cyan-500/20 bg-slate-900/60 backdrop-blur-xl p-5 shadow-2xl shadow-amber-500/5 space-y-5"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 pb-1 border-b border-slate-800">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+      <div className="flex items-center gap-3 pb-1 border-b border-slate-800 flex-wrap">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 shrink-0">
           <Bot className="h-5 w-5 text-white" />
         </div>
-        <div>
-          <h2 className="text-base font-bold text-white">FajuARC Agent</h2>
-          <p className="text-[11px] text-slate-400">Seu agente inteligente na Arc</p>
+        <div className="min-w-0">
+          <h2 className="text-base font-bold text-white truncate">FajuARC Agent</h2>
+          <p className="text-[11px] text-slate-400 truncate">Seu agente inteligente na Arc</p>
         </div>
         <a
           href="https://agents.circle.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="ml-auto flex items-center gap-1 text-xs text-slate-500 hover:text-cyan-400 transition-colors"
+          className="ml-auto flex items-center gap-1 text-xs text-slate-500 hover:text-cyan-400 transition-colors shrink-0"
         >
-          agents.circle.com <ExternalLink className="h-3 w-3" />
+          <span className="hidden sm:inline">agents.circle.com</span> <ExternalLink className="h-3 w-3" />
         </a>
       </div>
 
@@ -425,7 +430,7 @@ export function CircleAgentStack() {
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2.5 min-h-[44px] text-xs font-semibold transition-all ${
               tab === id
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20'
                 : 'text-slate-400 hover:text-slate-200'

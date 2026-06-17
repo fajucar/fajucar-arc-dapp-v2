@@ -151,7 +151,7 @@ export function AgentAchievements() {
     if (prev) {
       phaseUnlocked.forEach((unlocked, i) => {
         if (unlocked && !prev[i]) {
-          toast.success(`🎉 Você desbloqueou o Arc ${PHASES[i].shortName}!`)
+          toast.success(`🎉 You unlocked the Arc ${PHASES[i].shortName}!`)
         }
       })
     }
@@ -207,16 +207,16 @@ export function AgentAchievements() {
       }
 
       setOwnedModelIds(prev => new Set([...prev, phase.modelId]))
-      toast.success(`Mintado ${phase.item.name}!`, { id: 'achievement-mint' })
+      toast.success(`Minted ${phase.item.name}!`, { id: 'achievement-mint' })
     } catch (err: unknown) {
-      let message = 'Falha ao mintar NFT'
+      let message = 'Failed to mint NFT'
       if (typeof err === 'object' && err !== null && 'shortMessage' in err) {
         message = String((err as { shortMessage: string }).shortMessage)
       } else if (err instanceof Error && err.message) {
         message = err.message
       }
       if (message.toLowerCase().includes('rejected') || message.toLowerCase().includes('denied')) {
-        message = 'Transação rejeitada pelo usuário.'
+        message = 'Transaction rejected by user.'
       }
       toast.error(message, { id: 'achievement-mint', duration: 5000 })
     } finally {

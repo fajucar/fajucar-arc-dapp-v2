@@ -277,7 +277,7 @@ export function FaucetClaim() {
                 Cooldown de 24h entre claims
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
               {!canClaim && (
                 <span className="text-sm text-slate-300 font-mono">
                   Próximo em {countdown}
@@ -287,7 +287,7 @@ export function FaucetClaim() {
                 type="button"
                 onClick={() => handleClaim(token.symbol)}
                 disabled={!canClaim || isLoading}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-700 text-white transition-colors"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] rounded-xl text-sm font-semibold bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-700 text-white transition-colors"
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

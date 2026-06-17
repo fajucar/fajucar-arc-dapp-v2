@@ -329,7 +329,7 @@ export function PoolsPage() {
                     setPairReserves(null); setPairStatus('idle')
                     setGenericAddOpen(true)
                   }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white transition-all shadow-lg shadow-amber-500/20"
+                  className="flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-xl text-sm font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white transition-all shadow-lg shadow-amber-500/20"
                 >
                   <Plus className="h-4 w-4" />
                   {t('pools.addLiquidity')}
@@ -337,7 +337,7 @@ export function PoolsPage() {
                 <button
                   onClick={refetch}
                   disabled={loading}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors disabled:opacity-50"
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                   {t('pools.refresh')}
@@ -410,7 +410,7 @@ export function PoolsPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-md rounded-2xl border border-slate-700/50 bg-slate-900 p-6 shadow-2xl"
+                className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700/50 bg-slate-900 p-6 shadow-2xl"
               >
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="text-lg font-semibold text-white">{t('pools.selectTokens')}</h3>
