@@ -35,6 +35,8 @@ export const privyConfig: PrivyClientConfig = {
     },
   },
 
+  walletConnectCloudProjectId: '9c0cb1d56f2c523a497a6a3f0d65fa25',
+
   externalWallets: {
     coinbaseWallet: {
       config: {
@@ -53,5 +55,12 @@ export const privyConfig: PrivyClientConfig = {
     // O modal customizado (WalletModal + SocialLoginSection) é o caminho principal —
     // o Privy não oferece prop para forçar componente externo no lugar do modal padrão.
     showWalletLoginFirst: false,
+    walletList: [
+      'metamask',        // desktop + mobile deep link
+      'coinbase_wallet', // desktop + mobile
+      'rainbow',         // desktop + mobile
+      'okx_wallet',      // desktop + mobile (tem in-app browser)
+      'wallet_connect',  // fallback: 100+ carteiras via WalletConnect
+    ],
   },
 }
