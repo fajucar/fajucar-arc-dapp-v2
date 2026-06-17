@@ -1,23 +1,23 @@
 /**
  * FajuARC Agent Chat Route — POST /api/agent/chat
  *
- * Calls Google Gemini gemini-1.5-flash-latest with function calling enabled.
+ * Calls Groq (llama-3.3-70b-versatile) with function calling enabled.
  * Returns:
  *   { type: 'intent', tool, params, label, assistantContent } — tool chosen, needs confirm
  *   { type: 'text',   message }                              — plain reply
  */
 
 import { Router } from 'express'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Groq from 'groq-sdk'
 import { fetchTokenTransfers } from './arcscan.mjs'
 
 const router = Router()
 
-// ── Lazy Gemini client (initialised on first request) ─────────────────────────
-let _genAI = null
+// ── Lazy Groq client (initialised on first request) ───────────────────────────
+let _groq = null
 function getClient(apiKey) {
-  if (!_genAI) _genAI = new GoogleGenerativeAI(apiKey)
-  return _genAI
+  if (!_groq) _groq = new Groq({ apiKey })
+  return _groq
 }
 
 // ── Tools (Gemini function declarations format) ───────────────────────────────
@@ -334,40 +334,49 @@ function makeLabel(tool, params, lang = 'pt') {
   }
 }
 
-// ── Convert frontend message history to Gemini format ────────────────────────
-function toGeminiHistory(messages) {
+// ── Convert frontend message history to OpenAI/Groq format ───────────────────
+function toOpenAIHistory(messages) {
   const history = []
   for (const msg of messages) {
     if (msg.role === 'user') {
       const text = typeof msg.content === 'string' ? msg.content : ''
-      if (text) history.push({ role: 'user', parts: [{ text }] })
+      if (text) history.push({ role: 'user', content: text })
     } else if (msg.role === 'assistant') {
-      const parts = []
       if (Array.isArray(msg.content)) {
-        for (const block of msg.content) {
-          if (block.type === 'text')     parts.push({ text: block.text })
-          if (block.type === 'tool_use') parts.push({ functionCall: { name: block.name, args: block.input } })
+        const textBlock = msg.content.find(b => b.type === 'text')
+        const toolBlock = msg.content.find(b => b.type === 'tool_use')
+        if (toolBlock) {
+          history.push({
+            role: 'assistant',
+            content: textBlock?.text ?? null,
+            tool_calls: [{
+              id: toolBlock.id,
+              type: 'function',
+              function: { name: toolBlock.name, arguments: JSON.stringify(toolBlock.input) },
+            }],
+          })
+        } else if (textBlock) {
+          history.push({ role: 'assistant', content: textBlock.text })
         }
       } else if (typeof msg.content === 'string') {
-        parts.push({ text: msg.content })
+        history.push({ role: 'assistant', content: msg.content })
       }
-      if (parts.length) history.push({ role: 'model', parts })
-    } else if (msg.role === 'user' && Array.isArray(msg.content)) {
-      // tool_result blocks
-      const parts = msg.content
-        .filter(b => b.type === 'tool_result')
-        .map(b => ({ functionResponse: { name: b.tool_use_id, response: { result: b.content } } }))
-      if (parts.length) history.push({ role: 'user', parts })
     }
   }
   return history
 }
 
+// ── Groq tools format (OpenAI-compatible) ────────────────────────────────────
+const GROQ_TOOLS = TOOLS.map(t => ({
+  type: 'function',
+  function: { name: t.name, description: t.description, parameters: t.parameters },
+}))
+
 // ── Route ─────────────────────────────────────────────────────────────────────
 router.post('/chat', async (req, res) => {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim()
   if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY não configurada no .env' })
+    return res.status(500).json({ error: 'GEMINI_API_KEY (Groq key) não configurada no .env' })
   }
 
   const { messages = [], personality = 'explorer', walletAddress, withdrawalAddress, agentName } = req.body
@@ -385,37 +394,39 @@ router.post('/chat', async (req, res) => {
     ? `\nUser's withdrawal wallet: ${withdrawalAddress} — when the user mentions "carteira de saque", "minha carteira de saque", "saque" or "withdrawal wallet" as a destination, resolve it automatically to this address: ${withdrawalAddress}.`
     : ''
   const systemPrompt = basePrompt + walletHint + withdrawalHint
-  const genAI = getClient(apiKey)
+  const groq = getClient(apiKey)
+
+  const lastMsg = messages[messages.length - 1]
+  const userText = typeof lastMsg.content === 'string' ? lastMsg.content : ''
+  const lang = detectLang(userText)
+
+  const allMessages = [
+    { role: 'system', content: systemPrompt },
+    ...toOpenAIHistory(messages),
+  ]
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      systemInstruction: systemPrompt,
-      tools: [{ functionDeclarations: TOOLS }],
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: allMessages,
+      tools: GROQ_TOOLS,
+      tool_choice: 'auto',
+      max_tokens: 1024,
     })
 
-    // All messages except the last go into history; last is the new user turn
-    const history = toGeminiHistory(messages.slice(0, -1))
-    const lastMsg = messages[messages.length - 1]
-    const userText = typeof lastMsg.content === 'string' ? lastMsg.content : ''
-    const lang = detectLang(userText)
-
-    const chat = model.startChat({ history })
-    const result = await chat.sendMessage(userText)
-    const response = result.response
+    const choice = response.choices[0]
+    const msg = choice.message
+    const toolCall = msg.tool_calls?.[0]
 
     // ── Function call selected ────────────────────────────────────────────────
-    const candidate = response.candidates?.[0]
-    const parts = candidate?.content?.parts ?? []
-    const fnCall = parts.find(p => p.functionCall)
-
-    if (fnCall) {
-      const { name, args } = fnCall.functionCall
+    if (toolCall) {
+      const name = toolCall.function.name
+      const args = JSON.parse(toolCall.function.arguments || '{}')
 
       // ── Read-only tool: resolve server-side, no user confirmation needed ────
       if (name === 'getTransactionHistory') {
         const address = (args.address || walletAddress || '').trim()
-        const limit    = args.limit || 5
+        const limit   = args.limit || 5
 
         if (!address) {
           const message = lang === 'en'
@@ -438,15 +449,22 @@ router.post('/chat', async (req, res) => {
           items   = []
         }
 
-        const followup = await chat.sendMessage([
-          { functionResponse: { name, response: { result: summary } } },
-        ])
-        const message = followup.response.text?.() ?? summary
+        const followupMessages = [
+          ...allMessages,
+          { role: 'assistant', content: null, tool_calls: [toolCall] },
+          { role: 'tool', tool_call_id: toolCall.id, content: summary },
+        ]
+        const followup = await groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          messages: followupMessages,
+          max_tokens: 1024,
+        })
+        const message = followup.choices[0].message.content ?? summary
 
         return res.json({ type: 'tx-history', message, items, lang })
       }
 
-      const toolUseId = `gemini-fn-${Date.now()}`
+      const toolUseId = toolCall.id
       return res.json({
         type:             'intent',
         tool:             name,
@@ -458,12 +476,12 @@ router.post('/chat', async (req, res) => {
     }
 
     // ── Plain text reply ──────────────────────────────────────────────────────
-    const text = response.text?.() ?? parts.find(p => p.text)?.text ?? ''
+    const text = msg.content ?? ''
     return res.json({ type: 'text', message: text })
 
   } catch (err) {
-    console.error('[Agent] Gemini error:', err.message)
-    return res.status(500).json({ error: err.message ?? 'Erro ao chamar Gemini' })
+    console.error('[Agent] Groq error:', err.message)
+    return res.status(500).json({ error: err.message ?? 'Erro ao chamar Groq' })
   }
 })
 
