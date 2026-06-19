@@ -335,12 +335,30 @@ function makeLabel(tool, params, lang = 'pt') {
 }
 
 // ── Convert frontend message history to OpenAI/Groq format ───────────────────
+// The frontend uses Anthropic message format (tool_result inside user messages).
+// Groq expects OpenAI format: tool results as role:'tool' messages.
 function toOpenAIHistory(messages) {
   const history = []
   for (const msg of messages) {
     if (msg.role === 'user') {
-      const text = typeof msg.content === 'string' ? msg.content : ''
-      if (text) history.push({ role: 'user', content: text })
+      if (typeof msg.content === 'string') {
+        if (msg.content) history.push({ role: 'user', content: msg.content })
+      } else if (Array.isArray(msg.content)) {
+        const toolResultBlocks = msg.content.filter(b => b.type === 'tool_result')
+        if (toolResultBlocks.length > 0) {
+          // Convert Anthropic tool_result → OpenAI role:'tool'
+          for (const block of toolResultBlocks) {
+            history.push({
+              role:         'tool',
+              tool_call_id: block.tool_use_id,
+              content:      typeof block.content === 'string' ? block.content : JSON.stringify(block.content),
+            })
+          }
+        } else {
+          const text = msg.content.find(b => b.type === 'text')?.text ?? ''
+          if (text) history.push({ role: 'user', content: text })
+        }
+      }
     } else if (msg.role === 'assistant') {
       if (Array.isArray(msg.content)) {
         const textBlock = msg.content.find(b => b.type === 'text')
@@ -421,7 +439,7 @@ router.post('/chat', async (req, res) => {
     // ── Function call selected ────────────────────────────────────────────────
     if (toolCall) {
       const name = toolCall.function.name
-      const args = JSON.parse(toolCall.function.arguments || '{}')
+      const args = JSON.parse(toolCall.function.arguments || '{}') ?? {}
 
       // ── Read-only tool: resolve server-side, no user confirmation needed ────
       if (name === 'getTransactionHistory') {

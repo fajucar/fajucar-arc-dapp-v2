@@ -3,8 +3,9 @@ import { motion } from 'framer-motion'
 import { Lock, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
-import { useWalletClient, usePublicClient, useChainId } from 'wagmi'
-import { getAddress } from 'viem'
+import { useWalletClient, useChainId } from 'wagmi'
+import { createPublicClient, http, fallback, getAddress } from 'viem'
+import { arcTestnet } from '@/config/chains'
 import { useArcWallet } from '@/hooks/useArcWallet'
 import { useArcWriteContract } from '@/hooks/useArcWriteContract'
 import { ARC_COLLECTION } from '@/config/arcCollection'
@@ -13,6 +14,19 @@ import FajucarCollectionAbi from '@/abis/FajucarCollection.json'
 import { loadProfile } from '@/components/Agents/agentConstants'
 
 const API_BASE = 'http://localhost:3002/api/explorer'
+
+// Dedicated Arc Testnet client — same pattern as MyNFTsPage. Avoids usePublicClient()
+// returning undefined when the connected wallet is on a different chain, which would
+// prevent checkOwnership from reading on-chain NFT state after page reload.
+const arcClient = createPublicClient({
+  chain: arcTestnet,
+  transport: fallback([
+    http('https://rpc.testnet.arc.network'),
+    http('https://rpc.blockdaemon.testnet.arc.network'),
+    http('https://rpc.drpc.testnet.arc.network'),
+    http('https://rpc.quicknode.testnet.arc.network'),
+  ]),
+})
 
 type Phase = {
   modelId: number
@@ -54,18 +68,35 @@ function isValidContractAddress(value: string | undefined): value is `0x${string
   return s.startsWith('0x') && s.length === 42
 }
 
+// ArcScan API response types (blockscout-compatible)
+type ArcScanAddress = { hash: string }
+type ArcScanToken  = { address_hash: string }
+type ArcScanTotal  = { token_id?: string }
+type ArcScanTransfer = {
+  from:             ArcScanAddress
+  token:            ArcScanToken
+  total:            ArcScanTotal
+  transaction_hash: string
+}
+
+const ARCSCAN_API     = 'https://testnet.arcscan.app/api/v2'
+const MINTBYID_SEL    = '0x3c51c82b' // keccak256("mintById(uint256)")[:4]
+const ZERO_ADDRESS    = '0x0000000000000000000000000000000000000000'
+
 export function AgentAchievements() {
   const { t } = useTranslation()
-  const { address, signingAddress, isConnected, authMethod, pendingGoogleWallet } = useArcWallet()
+  const { address, signingAddress, isConnected, authMethod, pendingGoogleWallet, ready } = useArcWallet()
   const { writeContractAsync } = useArcWriteContract()
   const { data: walletClient } = useWalletClient()
-  const publicClient = usePublicClient()
   const chainId = useChainId()
 
   const PHASES = getPhases(t)
 
   const contractAddress = FAJUCAR_COLLECTION_ADDRESS
   const hasCollection = isValidContractAddress(contractAddress)
+
+  // Diagnostic: log every render so we can confirm address + ready state in the console
+  console.log('[Achievements] render —', { address, ready, contractAddress: contractAddress || '(empty)' })
 
   const [ownedModelIds, setOwnedModelIds] = useState<Set<number>>(new Set())
   const [mintingId, setMintingId] = useState<number | null>(null)
@@ -90,52 +121,98 @@ export function AgentAchievements() {
     return () => { cancelled = true }
   }, [address])
 
-  // Check which models are already minted
+  // Check which models are already minted.
+  // FajucarCollection's tokenOfOwnerByIndex is broken (enumerable out of sync with balanceOf)
+  // and all tokens share the same IPFS tokenURI, so we cannot distinguish model on-chain.
+  // Instead we query ArcScan token-transfer history, decode modelId from each mint tx's
+  // raw_input (mintById selector 0x3c51c82b), then verify current ownership via ownerOf.
   useEffect(() => {
-    if (!address || !publicClient || !isValidContractAddress(contractAddress)) return
+    if (!ready || !address || !isValidContractAddress(contractAddress)) return
     const contract = contractAddress
     let cancelled = false
 
     const checkOwnership = async () => {
       try {
-        const balance = await publicClient.readContract({
-          address: contract,
-          abi: FajucarCollectionAbi as never,
-          functionName: 'balanceOf',
-          args: [address],
-        }) as bigint
+        console.log('[Achievements] checkOwnership — address:', address, 'contract:', contract)
 
-        if (cancelled || balance === 0n) return
+        // ── Step 1: get all ERC-721 transfers for this address ───────────
+        const transfersRes = await fetch(
+          `${ARCSCAN_API}/addresses/${address}/token-transfers?type=ERC-721`,
+          { signal: AbortSignal.timeout(10000) }
+        )
+        if (!transfersRes.ok) {
+          console.warn('[Achievements] ArcScan token-transfers failed:', transfersRes.status)
+          return
+        }
+        const { items = [] } = await transfersRes.json() as { items?: ArcScanTransfer[] }
 
+        // Filter: minted (from=0x0) from this specific contract
+        const mints = items.filter(item =>
+          item.from?.hash?.toLowerCase()          === ZERO_ADDRESS &&
+          item.token?.address_hash?.toLowerCase() === contract.toLowerCase() &&
+          !!item.transaction_hash &&
+          !!item.total?.token_id
+        )
+        console.log('[Achievements] mints found:', mints.length)
+
+        if (cancelled) return
+        if (mints.length === 0) { setOwnedModelIds(new Set()); return }
+
+        // ── Step 2: decode modelId from each mint tx's raw_input ─────────
+        // Stop early once all 3 model types have a candidate token.
+        const modelToToken = new Map<number, bigint>()
+        for (const mint of mints) {
+          if (cancelled || modelToToken.size === 3) break
+          const txHash  = mint.transaction_hash
+          const tokenId = BigInt(mint.total.token_id!)
+          try {
+            const txRes = await fetch(`${ARCSCAN_API}/transactions/${txHash}`, { signal: AbortSignal.timeout(8000) })
+            if (!txRes.ok) continue
+            const tx = await txRes.json() as { raw_input?: string }
+            const raw = tx?.raw_input ?? ''
+            if (!raw.startsWith(MINTBYID_SEL)) continue
+            const modelId = parseInt(raw.slice(-64), 16)
+            console.log(`[Achievements] tx ${txHash.slice(0, 10)}… tokenId ${tokenId} → modelId ${modelId}`)
+            if (modelId >= 1 && modelId <= 3 && !modelToToken.has(modelId)) {
+              modelToToken.set(modelId, tokenId)
+            }
+          } catch (err) {
+            console.warn('[Achievements] tx fetch error:', err)
+          }
+        }
+        console.log('[Achievements] modelToToken:', [...modelToToken.entries()].map(([m, t]) => `${m}→${t}`))
+
+        // ── Step 3: confirm current ownership via ownerOf ─────────────────
         const modelIds = new Set<number>()
-        for (let i = 0n; i < balance; i++) {
+        for (const [modelId, tokenId] of modelToToken) {
           if (cancelled) return
           try {
-            const tokenId = await publicClient.readContract({
+            const owner = await arcClient.readContract({
               address: contract,
               abi: FajucarCollectionAbi as never,
-              functionName: 'tokenOfOwnerByIndex',
-              args: [address, i],
-            }) as bigint
-            const uri = (await publicClient.readContract({
-              address: contract,
-              abi: FajucarCollectionAbi as never,
-              functionName: 'tokenURI',
+              functionName: 'ownerOf',
               args: [tokenId],
-            }) as string).toLowerCase()
-            if (uri.includes('arc-explorer')) modelIds.add(1)
-            else if (uri.includes('arc-guardian')) modelIds.add(2)
-            else if (uri.includes('arc-builder')) modelIds.add(3)
-          } catch { /* skip */ }
+            }) as string
+            if (owner.toLowerCase() === address.toLowerCase()) {
+              modelIds.add(modelId)
+            } else {
+              console.log(`[Achievements] tokenId ${tokenId} (model ${modelId}) no longer owned`)
+            }
+          } catch (err) {
+            console.warn(`[Achievements] ownerOf(${tokenId}) error:`, err)
+          }
         }
 
+        console.log('[Achievements] final owned modelIds:', [...modelIds])
         if (!cancelled) setOwnedModelIds(modelIds)
-      } catch { /* ignore */ }
+      } catch (err) {
+        console.error('[Achievements] checkOwnership error:', err)
+      }
     }
 
     checkOwnership()
     return () => { cancelled = true }
-  }, [address, publicClient, contractAddress])
+  }, [ready, address, contractAddress])
 
   const phaseUnlocked = [
     isConnected,
@@ -173,7 +250,7 @@ export function AgentAchievements() {
       toast.error(`Mude para ${ARC_TESTNET.chainName} (Chain ID: ${ARC_TESTNET.chainId})`)
       return
     }
-    if (!hasCollection || !publicClient) {
+    if (!hasCollection) {
       toast.error('Coleção não configurada.')
       return
     }
@@ -185,9 +262,9 @@ export function AgentAchievements() {
     const nftContractAddress = getAddress(contractAddress)
     setMintingId(phase.modelId)
     try {
-      toast.loading(`Mintando ${phase.item.name}...`, { id: 'achievement-mint' })
+      toast.loading(`Minting ${phase.item.name}...`, { id: 'achievement-mint' })
 
-      await publicClient.simulateContract({
+      await arcClient.simulateContract({
         address: nftContractAddress,
         abi: FajucarCollectionAbi as never,
         functionName: 'mintById',
@@ -203,11 +280,26 @@ export function AgentAchievements() {
       })
 
       if (authMethod === 'wallet') {
-        await publicClient.waitForTransactionReceipt({ hash })
+        await arcClient.waitForTransactionReceipt({ hash })
       }
 
       setOwnedModelIds(prev => new Set([...prev, phase.modelId]))
-      toast.success(`Minted ${phase.item.name}!`, { id: 'achievement-mint' })
+      const explorerUrl = `${arcTestnet.blockExplorers.default.url}/tx/${hash}`
+      toast.success(
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span>Minted {phase.item.name}!</span>
+          <a
+            href={explorerUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{ fontSize: 12, color: '#22d3ee', textDecoration: 'underline' }}
+            onClick={e => e.stopPropagation()}
+          >
+            View on Explorer →
+          </a>
+        </div>,
+        { id: 'achievement-mint', duration: 8000 }
+      )
     } catch (err: unknown) {
       let message = 'Failed to mint NFT'
       if (typeof err === 'object' && err !== null && 'shortMessage' in err) {

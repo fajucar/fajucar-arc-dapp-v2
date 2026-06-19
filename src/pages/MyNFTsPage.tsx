@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import React from 'react'
-import { usePublicClient, useChainId } from 'wagmi'
+import { createPublicClient, http, fallback } from 'viem'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useArcWallet } from '@/hooks/useArcWallet'
@@ -12,6 +12,20 @@ import { ARC_COLLECTION, getImageURL } from '@/config/arcCollection'
 import { AppShell } from '@/components/Layout/AppShell'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CONSTANTS } from '@/config/constants'
+import { arcTestnet } from '@/config/chains'
+
+// Dedicated Arc Testnet client — always uses the correct RPC regardless of
+// which chain the connected wallet is on. This prevents usePublicClient()
+// returning undefined when the external wallet is on a different network.
+const arcClient = createPublicClient({
+  chain: arcTestnet,
+  transport: fallback([
+    http('https://rpc.testnet.arc.network'),
+    http('https://rpc.blockdaemon.testnet.arc.network'),
+    http('https://rpc.drpc.testnet.arc.network'),
+    http('https://rpc.quicknode.testnet.arc.network'),
+  ]),
+})
 import {
   clearRecentMint,
   clearStaleOptimisticUserNfts,
@@ -25,14 +39,12 @@ import {
   type RecentMintRecord,
 } from '@/lib/recentMint'
 import { withTimeout } from '@/lib/async'
+import { fetchMintsFromArcScan } from '@/lib/arcScanNfts'
 
 const GLOBAL_TIMEOUT_MS = 30000
-/** Hard cap for the full fetch (metadata + scan); avoids infinite skeleton if RPC hangs. */
+/** Hard cap for the full fetch; avoids infinite skeleton if RPC hangs. */
 const FULL_LOAD_TIMEOUT_MS = 180000
-/** Default 200; can be increased to 1000 in this file if the collection has more token IDs. */
-const MAX_TOKEN_ID_SCAN = 200
 const OWNER_OF_CONCURRENCY = 10
-const FIXED_IPFS_TOKEN_URI = 'ipfs://bafkreicisecsndv777lv3hfafh3kfgvxf25al2mf7rifrqbdbbjqvcrs6u'
 const RECENT_MINT_CONFIRMATION_DELAY_MS = 5000
 
 interface NFTInfo {
@@ -49,67 +61,9 @@ interface NFTInfo {
 
 const FAJUCAR_READ_ABI = [
   { type: 'function' as const, name: 'balanceOf' as const, stateMutability: 'view' as const, inputs: [{ name: 'owner', type: 'address' as const }], outputs: [{ type: 'uint256' }] },
-  { type: 'function' as const, name: 'tokenOfOwnerByIndex' as const, stateMutability: 'view' as const, inputs: [{ name: 'owner', type: 'address' as const }, { name: 'index', type: 'uint256' as const }], outputs: [{ type: 'uint256' }] },
-  { type: 'function' as const, name: 'getUserTokens' as const, stateMutability: 'view' as const, inputs: [{ name: 'user', type: 'address' as const }], outputs: [{ type: 'uint256[]' }] },
   { type: 'function' as const, name: 'ownerOf' as const, stateMutability: 'view' as const, inputs: [{ name: 'tokenId', type: 'uint256' as const }], outputs: [{ type: 'address' }] },
-  { type: 'function' as const, name: 'tokenURI' as const, stateMutability: 'view' as const, inputs: [{ name: 'tokenId', type: 'uint256' as const }], outputs: [{ type: 'string' }] },
 ] as const
 
-function ipfsToHttp(uri: string): string {
-  const s = (uri || '').trim()
-  if (s.startsWith('http://') || s.startsWith('https://')) return s
-  if (s.startsWith('ipfs://')) return `https://ipfs.io/ipfs/${s.replace(/^ipfs:\/\//, '')}`
-  if (s.startsWith('ipfs/')) return `https://ipfs.io/ipfs/${s.replace(/^ipfs\//, '')}`
-  return s
-}
-
-/** Resolve image URL so it loads in the browser: relative paths and localhost use current origin. */
-function resolveImageUrl(imageUrl: string, metadataOrigin?: string): string {
-  const s = (imageUrl || '').trim()
-  if (!s) return ''
-  let normalized = ipfsToHttp(s)
-  // Relative path (e.g. /assets/nfts/arc_explorer.png) -> use current origin so image loads
-  if (normalized.startsWith('/')) {
-    const origin = typeof window !== 'undefined' ? window.location.origin : metadataOrigin || ''
-    return origin ? `${origin}${normalized}` : normalized
-  }
-  // If metadata points to localhost but app is served from another origin, use current origin for same path (e.g. deployed app)
-  if (typeof window !== 'undefined' && window.location.origin && (normalized.includes('localhost') || normalized.includes('127.0.0.1'))) {
-    try {
-      const u = new URL(normalized)
-      const path = u.pathname + u.search
-      if (path && path !== '/') normalized = `${window.location.origin}${path}`
-    } catch {
-      // keep normalized as-is
-    }
-  }
-  return normalized
-}
-
-async function fetchMetadata(tokenUri: string): Promise<{ name?: string; image?: string }> {
-  let url = ipfsToHttp(tokenUri)
-  // Resolve relative metadata URLs (e.g. /metadata/arc-explorer.json) so fetch works
-  if (url.startsWith('/') && typeof window !== 'undefined') {
-    url = `${window.location.origin}${url}`
-  }
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000), mode: 'cors' })
-    if (!res.ok) return {}
-    const json = (await res.json()) as { name?: string; image?: string; image_url?: string }
-    const name = typeof json.name === 'string' ? json.name : undefined
-    const rawImage = typeof json.image === 'string' ? json.image : typeof json.image_url === 'string' ? json.image_url : undefined
-    let origin: string | undefined
-    try {
-      origin = new URL(url).origin
-    } catch {
-      origin = typeof window !== 'undefined' ? window.location.origin : undefined
-    }
-    const image = rawImage ? resolveImageUrl(rawImage, origin) : undefined
-    return { name, image }
-  } catch {
-    return {}
-  }
-}
 
 async function runWithConcurrency<T, R>(items: T[], concurrency: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const results: R[] = []
@@ -124,8 +78,6 @@ async function runWithConcurrency<T, R>(items: T[], concurrency: number, fn: (it
 export function MyNFTsPage() {
   const { t } = useTranslation()
   const { address, isConnected } = useArcWallet()
-  const publicClient = usePublicClient()
-  const chainId = useChainId()
   const [searchParams] = useSearchParams()
   const { openModal } = useWalletModal()
 
@@ -171,12 +123,13 @@ export function MyNFTsPage() {
   // Cada usuário vê apenas os NFTs que possui (carteira conectada)
   const ownerAddress = address ?? null
 
-  // Listagem 100% on-chain: balanceOf -> tokenOfOwnerByIndex ou getUserTokens ou ownerOf(tokenId) scan. Sem mocks, totalSupply isolado ou IDs fixos.
+  // Listagem 100% on-chain: balanceOf -> tokenOfOwnerByIndex ou getUserTokens ou ownerOf(tokenId) scan.
+  // Uses arcClient (module-level) pinned to Arc Testnet RPC — avoids usePublicClient() returning
+  // undefined when the connected external wallet is on a different chain.
   const loadNFTs = useCallback(async (): Promise<NFTInfo[]> => {
     const loadId = ++nftLoadIdRef.current
     const isCurrent = () => loadId === nftLoadIdRef.current
 
-    // Abort previous RPC batch (signal used in catch only; new load supersedes old via loadId)
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
@@ -187,27 +140,7 @@ export function MyNFTsPage() {
     setLoading(true)
     setError(null)
 
-    if (!publicClient) {
-      if (isCurrent()) {
-        setNfts([])
-        setError(null)
-        setLoading(false)
-        loadingRef.current = false
-      }
-      return []
-    }
-
     if (!ownerAddress) {
-      if (isCurrent()) {
-        setNfts([])
-        setError(null)
-        setLoading(false)
-        loadingRef.current = false
-      }
-      return []
-    }
-
-    if (!chainId) {
       if (isCurrent()) {
         setNfts([])
         setError(null)
@@ -226,174 +159,105 @@ export function MyNFTsPage() {
       }
       return []
     }
+
     const contract = FAJUCAR_COLLECTION_ADDRESS as `0x${string}`
     const owner = ownerAddress as `0x${string}`
+
+    console.log('[MyNFTs] loadNFTs start — owner:', owner, 'contract:', contract)
 
     try {
       return await withTimeout(
         (async (): Promise<NFTInfo[]> => {
-          const balance = await withTimeout(
-            publicClient.readContract({
-              address: contract,
-              abi: FAJUCAR_READ_ABI,
-              functionName: 'balanceOf',
-              args: [owner],
-            }),
-            GLOBAL_TIMEOUT_MS,
-            'balanceOf'
-          )
+          // ── Step 1: balanceOf — fast early exit if wallet has no tokens ──
+          let balance = 0n
+          try {
+            balance = await withTimeout(
+              arcClient.readContract({
+                address: contract,
+                abi: FAJUCAR_READ_ABI,
+                functionName: 'balanceOf',
+                args: [owner],
+              }) as Promise<bigint>,
+              GLOBAL_TIMEOUT_MS,
+              'balanceOf'
+            )
+            console.log('[MyNFTs] balanceOf:', balance.toString())
+          } catch (err) {
+            console.warn('[MyNFTs] balanceOf failed (non-fatal):', err)
+          }
 
-          if (balance === undefined || balance === null || balance === 0n) {
-            if (isCurrent()) {
-              setNfts([])
-              setError(null)
-            }
+          if (balance === 0n) {
+            console.log('[MyNFTs] balance is 0 — no NFTs')
+            if (isCurrent()) { setNfts([]); setError(null) }
             return []
           }
 
-          let tokenIds: string[] = []
-          let enumerableSupported = false
-          try {
-            await withTimeout(
-              publicClient.readContract({
-                address: contract,
-                abi: FAJUCAR_READ_ABI,
-                functionName: 'tokenOfOwnerByIndex',
-                args: [owner, 0n],
-              }),
-              GLOBAL_TIMEOUT_MS,
-              'tokenOfOwnerByIndex_probe'
-            )
-            enumerableSupported = true
-          } catch {
-            // tokenOfOwnerByIndex not available
+          // ── Step 2: ArcScan token-transfer history ──────────────────────
+          // tokenOfOwnerByIndex is broken on this contract (ERC721Enumerable
+          // out of sync with balanceOf) and eth_getLogs has a 10,000-block
+          // range limit on Arc Testnet (47M+ blocks), so we use ArcScan's
+          // token-transfers API which returns full history in one request.
+          console.log('[MyNFTs] fetching mint history from ArcScan…')
+          const mints = await withTimeout(
+            fetchMintsFromArcScan(owner, contract),
+            15000,
+            'arcScanMints'
+          )
+          console.log('[MyNFTs] ArcScan mints found:', mints.length)
+
+          if (!isCurrent()) return []
+          if (mints.length === 0) {
+            if (isCurrent()) { setNfts([]); setError(null) }
+            return []
           }
 
-          if (enumerableSupported) {
-            for (let i = 0; i < Number(balance); i++) {
+          // ── Step 3: verify current ownership via ownerOf (concurrent) ───
+          const verifiedMints = (
+            await runWithConcurrency(mints, OWNER_OF_CONCURRENCY, async mint => {
               try {
-                const tokenId = await withTimeout(
-                  publicClient.readContract({
-                    address: contract,
-                    abi: FAJUCAR_READ_ABI,
-                    functionName: 'tokenOfOwnerByIndex',
-                    args: [owner, BigInt(i)],
-                  }),
-                  GLOBAL_TIMEOUT_MS,
-                  `tokenOfOwnerByIndex_${i}`
-                )
-                tokenIds.push(tokenId.toString())
-              } catch {
-                // skip failed index
-              }
-            }
-          }
-
-          if (tokenIds.length === 0) {
-            try {
-              const userTokens = await withTimeout(
-                publicClient.readContract({
-                  address: contract,
-                  abi: FAJUCAR_READ_ABI,
-                  functionName: 'getUserTokens',
-                  args: [owner],
-                }),
-                GLOBAL_TIMEOUT_MS,
-                'getUserTokens'
-              )
-              if (Array.isArray(userTokens) && userTokens.length > 0) {
-                tokenIds = userTokens.map((id: bigint) => id.toString())
-              }
-            } catch {
-              // getUserTokens not available or reverted
-            }
-          }
-
-          if (tokenIds.length === 0) {
-            const scanIds = Array.from({ length: Number(MAX_TOKEN_ID_SCAN) }, (_, i) => i + 1)
-            const owners = await runWithConcurrency(scanIds, OWNER_OF_CONCURRENCY, async (tokenId) => {
-              try {
-                return await withTimeout(
-                  publicClient.readContract({
+                const currentOwner = await withTimeout(
+                  arcClient.readContract({
                     address: contract,
                     abi: FAJUCAR_READ_ABI,
                     functionName: 'ownerOf',
-                    args: [BigInt(tokenId)],
-                  }),
+                    args: [BigInt(mint.tokenId)],
+                  }) as Promise<string>,
                   GLOBAL_TIMEOUT_MS,
-                  `ownerOf_${tokenId}`
+                  `ownerOf_${mint.tokenId}`
                 )
+                return currentOwner.toLowerCase() === owner.toLowerCase() ? mint : null
               } catch {
                 return null
               }
             })
-            tokenIds = scanIds
-              .map((id, i) => (owners[i]?.toLowerCase() === owner.toLowerCase() ? String(id) : null))
-              .filter((id): id is string => id !== null)
-          }
+          ).filter((m): m is typeof mints[0] => m !== null)
 
-          const allNFTs: NFTInfo[] = []
-          for (const tokenIdStr of tokenIds) {
-            let tokenUri: string | undefined
-            try {
-              tokenUri = await withTimeout(
-                publicClient.readContract({
-                  address: contract,
-                  abi: FAJUCAR_READ_ABI,
-                  functionName: 'tokenURI',
-                  args: [BigInt(tokenIdStr)],
-                }),
-                GLOBAL_TIMEOUT_MS,
-                `tokenURI_${tokenIdStr}`
-              )
-            } catch {
-              tokenUri = FIXED_IPFS_TOKEN_URI
-            }
-            const uriToFetch = tokenUri || FIXED_IPFS_TOKEN_URI
-            let name: string | undefined
-            let image: string | undefined
-            try {
-              const meta = await fetchMetadata(uriToFetch)
-              name = meta.name
-              image = meta.image
-            } catch {
-              // leave name/image undefined
-            }
-            // Fallback: if metadata had no image but tokenURI is a direct image URL, use it
-            if (!image && /\.(png|jpg|jpeg|gif|webp|svg)(\?|$)/i.test(uriToFetch)) {
-              image = resolveImageUrl(uriToFetch)
-            }
-            // Fallback FajucarCollection: use app assets so images always show when contract tokenURI is localhost or fails (tokenId 1..5 = modelo exato; 6+ = ciclo)
-            const tokenIdNum = parseInt(tokenIdStr, 10)
-            if (!image && !isNaN(tokenIdNum) && tokenIdNum >= 1 && ARC_COLLECTION.length > 0) {
-              const index = (tokenIdNum - 1) % ARC_COLLECTION.length
-              const item = ARC_COLLECTION[index]
-              if (item?.image) {
-                image = getImageURL(item.image)
-                if (!name) name = item.name
-              }
-            }
-            allNFTs.push({
-              id: `${contract.toLowerCase()}-${tokenIdStr}`,
+          console.log('[MyNFTs] owned after ownerOf check:', verifiedMints.length)
+          if (!isCurrent()) return []
+
+          // ── Step 4: build NFTInfo — name + image from bundled ARC_COLLECTION
+          // All tokens share the same IPFS tokenURI (bafkrei…) which is
+          // inaccessible via public gateways, so we use the modelId decoded
+          // from the mint tx to pick the correct bundled asset.
+          const allNFTs: NFTInfo[] = verifiedMints.map(mint => {
+            const item = mint.modelId !== null ? ARC_COLLECTION[mint.modelId - 1] : undefined
+            console.log(`[MyNFTs] tokenId ${mint.tokenId} → modelId ${mint.modelId ?? 'unknown'} → ${item?.name ?? 'no asset'}`)
+            return {
+              id:              `${contract.toLowerCase()}-${mint.tokenId}`,
               contractAddress: contract,
-              tokenId: tokenIdStr,
-              owner: ownerAddress,
-              tokenUri: uriToFetch,
-              name,
-              image,
-            })
-          }
-
-          allNFTs.sort((a, b) => {
+              tokenId:         mint.tokenId,
+              owner:           ownerAddress,
+              name:            item?.name,
+              image:           item?.image ? getImageURL(item.image) : undefined,
+            }
+          }).sort((a, b) => {
             const idA = BigInt(a.tokenId || '0')
             const idB = BigInt(b.tokenId || '0')
             return idA < idB ? -1 : idA > idB ? 1 : 0
           })
 
-          if (isCurrent()) {
-            setNfts(allNFTs)
-            setError(null)
-          }
+          console.log('[MyNFTs] loadNFTs done —', allNFTs.length, 'NFT(s)')
+          if (isCurrent()) { setNfts(allNFTs); setError(null) }
           return allNFTs
         })(),
         FULL_LOAD_TIMEOUT_MS,
@@ -427,7 +291,7 @@ export function MyNFTsPage() {
         abortControllerRef.current = null
       }
     }
-  }, [publicClient, ownerAddress, chainId])
+  }, [ownerAddress])
 
   // Use ref to store loadNFTs to avoid dependency issues
   const loadNFTsRef = useRef(loadNFTs)
@@ -488,24 +352,23 @@ export function MyNFTsPage() {
   }, [ownerAddress])
 
   useEffect(() => {
-    if (ownerAddress && chainId && publicClient) {
+    if (ownerAddress) {
       void loadNFTsRef.current()
-    } else if (!ownerAddress || !publicClient) {
+    } else {
       nftLoadIdRef.current += 1
       setNfts([])
       setError(null)
       setLoading(false)
       loadingRef.current = false
     }
-    // Intentionally do not clear NFTs when chainId is briefly undefined after reconnect — wait for next effect tick.
-  }, [ownerAddress, chainId, publicClient])
+  }, [ownerAddress])
 
   // Reload NFTs when highlight param changes (e.g., after mint)
   useEffect(() => {
-    if (highlightParam && ownerAddress && chainId && publicClient) {
+    if (highlightParam && ownerAddress) {
       void loadNFTsRef.current()
     }
-  }, [highlightParam, ownerAddress, chainId, publicClient])
+  }, [highlightParam, ownerAddress])
 
   useEffect(() => {
     const shouldSyncRecentMint = Boolean(
@@ -515,7 +378,7 @@ export function MyNFTsPage() {
       recentMint.ownerAddress.toLowerCase() === ownerAddress?.toLowerCase()
     )
 
-    if (!shouldSyncRecentMint || !ownerAddress || !chainId || !publicClient) {
+    if (!shouldSyncRecentMint || !ownerAddress) {
       setIsChecking(false)
       return
     }
@@ -536,7 +399,7 @@ export function MyNFTsPage() {
       cancelled = true
       window.clearTimeout(timeoutId)
     }
-  }, [recentMint, ownerAddress, chainId, publicClient])
+  }, [recentMint, ownerAddress])
 
   useEffect(() => {
     if (!ownerAddress) return
