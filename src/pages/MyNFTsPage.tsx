@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import React from 'react'
-import { createPublicClient, http, fallback } from 'viem'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useArcWallet } from '@/hooks/useArcWallet'
+import { useNFTOwnership } from '@/hooks/useNFTOwnership'
 import { RefreshCw, ExternalLink, Copy, CheckCircle2, Image as ImageIcon, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useWalletModal } from '@/contexts/WalletModalContext'
@@ -12,20 +12,6 @@ import { ARC_COLLECTION, getImageURL } from '@/config/arcCollection'
 import { AppShell } from '@/components/Layout/AppShell'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CONSTANTS } from '@/config/constants'
-import { arcTestnet } from '@/config/chains'
-
-// Dedicated Arc Testnet client — always uses the correct RPC regardless of
-// which chain the connected wallet is on. This prevents usePublicClient()
-// returning undefined when the external wallet is on a different network.
-const arcClient = createPublicClient({
-  chain: arcTestnet,
-  transport: fallback([
-    http('https://rpc.testnet.arc.network'),
-    http('https://rpc.blockdaemon.testnet.arc.network'),
-    http('https://rpc.drpc.testnet.arc.network'),
-    http('https://rpc.quicknode.testnet.arc.network'),
-  ]),
-})
 import {
   clearRecentMint,
   clearStaleOptimisticUserNfts,
@@ -38,13 +24,7 @@ import {
   type OptimisticUserNft,
   type RecentMintRecord,
 } from '@/lib/recentMint'
-import { withTimeout } from '@/lib/async'
-import { fetchMintsFromArcScan } from '@/lib/arcScanNfts'
 
-const GLOBAL_TIMEOUT_MS = 30000
-/** Hard cap for the full fetch; avoids infinite skeleton if RPC hangs. */
-const FULL_LOAD_TIMEOUT_MS = 180000
-const OWNER_OF_CONCURRENCY = 10
 const RECENT_MINT_CONFIRMATION_DELAY_MS = 5000
 
 interface NFTInfo {
@@ -59,31 +39,52 @@ interface NFTInfo {
   isPending?: boolean
 }
 
-const FAJUCAR_READ_ABI = [
-  { type: 'function' as const, name: 'balanceOf' as const, stateMutability: 'view' as const, inputs: [{ name: 'owner', type: 'address' as const }], outputs: [{ type: 'uint256' }] },
-  { type: 'function' as const, name: 'ownerOf' as const, stateMutability: 'view' as const, inputs: [{ name: 'tokenId', type: 'uint256' as const }], outputs: [{ type: 'address' }] },
-] as const
-
-
-async function runWithConcurrency<T, R>(items: T[], concurrency: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = []
-  for (let i = 0; i < items.length; i += concurrency) {
-    const chunk = items.slice(i, i + concurrency)
-    const chunkResults = await Promise.all(chunk.map(fn))
-    results.push(...chunkResults)
-  }
-  return results
-}
-
 export function MyNFTsPage() {
   const { t } = useTranslation()
   const { address, isConnected } = useArcWallet()
   const [searchParams] = useSearchParams()
   const { openModal } = useWalletModal()
 
-  const [nfts, setNfts] = useState<NFTInfo[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const ownerAddress = address ?? null
+
+  // ── NFT ownership via shared hook (localStorage cache → instant display) ───
+  const {
+    mints,
+    ownedTokenIds,
+    loading,
+    revalidating,
+    error,
+    refresh,
+  } = useNFTOwnership(ownerAddress, FAJUCAR_COLLECTION_ADDRESS || null)
+
+  // Show toast when fetch fails with no cached fallback
+  useEffect(() => {
+    if (error) toast.error('Network took too long. Check your connection / Arc Testnet RPC.')
+  }, [error])
+
+  // Derive confirmed NFTs from hook data
+  const confirmedNFTs = useMemo(() =>
+    mints
+      .filter(m => ownedTokenIds.has(m.tokenId))
+      .map(m => {
+        const item = m.modelId !== null ? ARC_COLLECTION[m.modelId - 1] : undefined
+        return {
+          id:              `${(FAJUCAR_COLLECTION_ADDRESS ?? '').toLowerCase()}-${m.tokenId}`,
+          contractAddress: FAJUCAR_COLLECTION_ADDRESS ?? '',
+          tokenId:         m.tokenId,
+          owner:           ownerAddress ?? '',
+          name:            item?.name,
+          image:           item?.image ? getImageURL(item.image) : undefined,
+        } satisfies NFTInfo
+      })
+      .sort((a, b) => {
+        const idA = BigInt(a.tokenId || '0')
+        const idB = BigInt(b.tokenId || '0')
+        return idA < idB ? -1 : idA > idB ? 1 : 0
+      }),
+    [mints, ownedTokenIds, ownerAddress],
+  )
+
   const [copied, setCopied] = useState<string | null>(null)
   const [selectedNft, setSelectedNft] = useState<NFTInfo | null>(null)
   const [userNFTs, setUserNFTs] = useState<NFTInfo[]>([])
@@ -93,18 +94,14 @@ export function MyNFTsPage() {
   })
   const [isChecking, setIsChecking] = useState(false)
 
-  const loadingRef = useRef(false)
-  /** Bumps on each new load or disconnect; stale async work must not overwrite state (fixes stuck skeleton / empty after reconnect). */
-  const nftLoadIdRef = useRef(0)
-  const abortControllerRef = useRef<AbortController | null>(null)
   const highlightedTokenIdRef = useRef<HTMLDivElement>(null)
 
   const highlightParam = searchParams.get('highlight')
   const highlightedTokenId = highlightParam ?? recentMint?.tokenId ?? null
+
   const mergedNFTs = useMemo(() => {
     const map = new Map<string, NFTInfo>()
-
-    for (const nft of [...userNFTs, ...nfts]) {
+    for (const nft of [...userNFTs, ...confirmedNFTs]) {
       const key = nft.tokenId
         ? `${nft.contractAddress.toLowerCase()}-${nft.tokenId}`
         : nft.id
@@ -112,192 +109,12 @@ export function MyNFTsPage() {
         map.set(key, nft)
       }
     }
-
     return Array.from(map.values()).sort((a, b) => {
       const idA = BigInt(a.tokenId || '0')
       const idB = BigInt(b.tokenId || '0')
       return idA < idB ? -1 : idA > idB ? 1 : 0
     })
-  }, [nfts, userNFTs])
-
-  // Cada usuário vê apenas os NFTs que possui (carteira conectada)
-  const ownerAddress = address ?? null
-
-  // Listagem 100% on-chain: balanceOf -> tokenOfOwnerByIndex ou getUserTokens ou ownerOf(tokenId) scan.
-  // Uses arcClient (module-level) pinned to Arc Testnet RPC — avoids usePublicClient() returning
-  // undefined when the connected external wallet is on a different chain.
-  const loadNFTs = useCallback(async (): Promise<NFTInfo[]> => {
-    const loadId = ++nftLoadIdRef.current
-    const isCurrent = () => loadId === nftLoadIdRef.current
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-    abortControllerRef.current = new AbortController()
-    const abortSignal = abortControllerRef.current.signal
-
-    loadingRef.current = true
-    setLoading(true)
-    setError(null)
-
-    if (!ownerAddress) {
-      if (isCurrent()) {
-        setNfts([])
-        setError(null)
-        setLoading(false)
-        loadingRef.current = false
-      }
-      return []
-    }
-
-    if (!FAJUCAR_COLLECTION_ADDRESS) {
-      if (isCurrent()) {
-        setError('Invalid contract. Check VITE_FAJUCAR_COLLECTION_ADDRESS (no quotes or spaces).')
-        setNfts([])
-        setLoading(false)
-        loadingRef.current = false
-      }
-      return []
-    }
-
-    const contract = FAJUCAR_COLLECTION_ADDRESS as `0x${string}`
-    const owner = ownerAddress as `0x${string}`
-
-    console.log('[MyNFTs] loadNFTs start — owner:', owner, 'contract:', contract)
-
-    try {
-      return await withTimeout(
-        (async (): Promise<NFTInfo[]> => {
-          // ── Step 1: balanceOf — fast early exit if wallet has no tokens ──
-          let balance = 0n
-          try {
-            balance = await withTimeout(
-              arcClient.readContract({
-                address: contract,
-                abi: FAJUCAR_READ_ABI,
-                functionName: 'balanceOf',
-                args: [owner],
-              }) as Promise<bigint>,
-              GLOBAL_TIMEOUT_MS,
-              'balanceOf'
-            )
-            console.log('[MyNFTs] balanceOf:', balance.toString())
-          } catch (err) {
-            console.warn('[MyNFTs] balanceOf failed (non-fatal):', err)
-          }
-
-          if (balance === 0n) {
-            console.log('[MyNFTs] balance is 0 — no NFTs')
-            if (isCurrent()) { setNfts([]); setError(null) }
-            return []
-          }
-
-          // ── Step 2: ArcScan token-transfer history ──────────────────────
-          // tokenOfOwnerByIndex is broken on this contract (ERC721Enumerable
-          // out of sync with balanceOf) and eth_getLogs has a 10,000-block
-          // range limit on Arc Testnet (47M+ blocks), so we use ArcScan's
-          // token-transfers API which returns full history in one request.
-          console.log('[MyNFTs] fetching mint history from ArcScan…')
-          const mints = await withTimeout(
-            fetchMintsFromArcScan(owner, contract),
-            15000,
-            'arcScanMints'
-          )
-          console.log('[MyNFTs] ArcScan mints found:', mints.length)
-
-          if (!isCurrent()) return []
-          if (mints.length === 0) {
-            if (isCurrent()) { setNfts([]); setError(null) }
-            return []
-          }
-
-          // ── Step 3: verify current ownership via ownerOf (concurrent) ───
-          const verifiedMints = (
-            await runWithConcurrency(mints, OWNER_OF_CONCURRENCY, async mint => {
-              try {
-                const currentOwner = await withTimeout(
-                  arcClient.readContract({
-                    address: contract,
-                    abi: FAJUCAR_READ_ABI,
-                    functionName: 'ownerOf',
-                    args: [BigInt(mint.tokenId)],
-                  }) as Promise<string>,
-                  GLOBAL_TIMEOUT_MS,
-                  `ownerOf_${mint.tokenId}`
-                )
-                return currentOwner.toLowerCase() === owner.toLowerCase() ? mint : null
-              } catch {
-                return null
-              }
-            })
-          ).filter((m): m is typeof mints[0] => m !== null)
-
-          console.log('[MyNFTs] owned after ownerOf check:', verifiedMints.length)
-          if (!isCurrent()) return []
-
-          // ── Step 4: build NFTInfo — name + image from bundled ARC_COLLECTION
-          // All tokens share the same IPFS tokenURI (bafkrei…) which is
-          // inaccessible via public gateways, so we use the modelId decoded
-          // from the mint tx to pick the correct bundled asset.
-          const allNFTs: NFTInfo[] = verifiedMints.map(mint => {
-            const item = mint.modelId !== null ? ARC_COLLECTION[mint.modelId - 1] : undefined
-            console.log(`[MyNFTs] tokenId ${mint.tokenId} → modelId ${mint.modelId ?? 'unknown'} → ${item?.name ?? 'no asset'}`)
-            return {
-              id:              `${contract.toLowerCase()}-${mint.tokenId}`,
-              contractAddress: contract,
-              tokenId:         mint.tokenId,
-              owner:           ownerAddress,
-              name:            item?.name,
-              image:           item?.image ? getImageURL(item.image) : undefined,
-            }
-          }).sort((a, b) => {
-            const idA = BigInt(a.tokenId || '0')
-            const idB = BigInt(b.tokenId || '0')
-            return idA < idB ? -1 : idA > idB ? 1 : 0
-          })
-
-          console.log('[MyNFTs] loadNFTs done —', allNFTs.length, 'NFT(s)')
-          if (isCurrent()) { setNfts(allNFTs); setError(null) }
-          return allNFTs
-        })(),
-        FULL_LOAD_TIMEOUT_MS,
-        'loadNFTs_full'
-      )
-    } catch (error: unknown) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
-
-      if (abortSignal.aborted || errorMsg.includes('aborted')) {
-        if (isCurrent()) {
-          setError('Operation cancelled or timeout.')
-          setNfts([])
-        }
-        return []
-      }
-
-      if (isCurrent()) {
-        const friendly =
-          errorMsg.includes('loadNFTs_full') || errorMsg.includes('Timeout:')
-            ? 'Network took too long to load NFTs. Tap Refresh or check your connection / Arc Testnet RPC.'
-            : errorMsg || 'Error loading NFTs'
-        toast.error(friendly)
-        setError(friendly)
-        setNfts([])
-      }
-      return []
-    } finally {
-      if (isCurrent()) {
-        setLoading(false)
-        loadingRef.current = false
-        abortControllerRef.current = null
-      }
-    }
-  }, [ownerAddress])
-
-  // Use ref to store loadNFTs to avoid dependency issues
-  const loadNFTsRef = useRef(loadNFTs)
-  useEffect(() => {
-    loadNFTsRef.current = loadNFTs
-  }, [loadNFTs])
+  }, [confirmedNFTs, userNFTs])
 
   useEffect(() => {
     clearStaleOptimisticUserNfts()
@@ -351,25 +168,13 @@ export function MyNFTsPage() {
     }
   }, [ownerAddress])
 
+  // Bust cache + refresh after mint URL param appears (e.g. ?highlight=tokenId)
   useEffect(() => {
-    if (ownerAddress) {
-      void loadNFTsRef.current()
-    } else {
-      nftLoadIdRef.current += 1
-      setNfts([])
-      setError(null)
-      setLoading(false)
-      loadingRef.current = false
-    }
-  }, [ownerAddress])
+    if (highlightParam && ownerAddress) refresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightParam])
 
-  // Reload NFTs when highlight param changes (e.g., after mint)
-  useEffect(() => {
-    if (highlightParam && ownerAddress) {
-      void loadNFTsRef.current()
-    }
-  }, [highlightParam, ownerAddress])
-
+  // After a confirmed recent mint, wait RECENT_MINT_CONFIRMATION_DELAY_MS then bust cache
   useEffect(() => {
     const shouldSyncRecentMint = Boolean(
       recentMint &&
@@ -386,10 +191,9 @@ export function MyNFTsPage() {
     let cancelled = false
     setIsChecking(true)
 
-    const timeoutId = window.setTimeout(async () => {
+    const timeoutId = window.setTimeout(() => {
       if (cancelled) return
-      await loadNFTsRef.current()
-      if (cancelled) return
+      refresh()
       setIsChecking(false)
       clearRecentMint()
       setRecentMint(null)
@@ -399,13 +203,14 @@ export function MyNFTsPage() {
       cancelled = true
       window.clearTimeout(timeoutId)
     }
-  }, [recentMint, ownerAddress])
+  }, [recentMint, ownerAddress, refresh])
 
+  // When confirmed NFTs appear on-chain, remove their optimistic counterparts
   useEffect(() => {
     if (!ownerAddress) return
 
     const onChainTokenIds = new Set(
-      nfts
+      confirmedNFTs
         .filter((item) => item.contractAddress.toLowerCase() === FAJUCAR_COLLECTION_ADDRESS.toLowerCase())
         .map((item) => item.tokenId)
     )
@@ -430,10 +235,7 @@ export function MyNFTsPage() {
         isPending: true,
       }))
     )
-  }, [nfts, ownerAddress])
-
-  // Note: periodic auto-refresh was removed — overlapping loads could leave loading=true forever
-  // when a superseded request's finally skipped setLoading(false). Use Refresh or remount.
+  }, [confirmedNFTs, ownerAddress])
 
   // Scroll to highlighted NFT when it appears
   useEffect(() => {
@@ -445,7 +247,7 @@ export function MyNFTsPage() {
         })
       }, 500)
     }
-  }, [highlightedTokenId, nfts])
+  }, [highlightedTokenId, confirmedNFTs])
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -524,14 +326,11 @@ export function MyNFTsPage() {
 
       <div className="flex items-center justify-between mb-4">
         <button
-          onClick={() => {
-            setError(null)
-            loadNFTsRef.current()
-          }}
+          onClick={refresh}
           disabled={loading}
           className="px-3 py-1.5 rounded-lg bg-slate-800/40 border border-slate-700/40 text-slate-300 hover:bg-slate-800/60 hover:border-slate-600 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-xs font-medium"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading || revalidating ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
@@ -565,7 +364,7 @@ export function MyNFTsPage() {
           <p className="text-red-400 text-sm font-medium mb-2">{error}</p>
           <p className="text-slate-500 text-xs mb-4">{t('myNfts.clickRefreshToRetry')}</p>
           <button
-            onClick={() => { setError(null); loadNFTsRef.current() }}
+            onClick={refresh}
             className="px-4 py-2 rounded-lg bg-slate-700/50 text-slate-300 text-sm hover:bg-slate-600/50 transition-colors"
           >
             Refresh
@@ -582,7 +381,7 @@ export function MyNFTsPage() {
               : 'Only after the wallet scan completes will this empty state be shown.'}
           </p>
           <button
-            onClick={() => { setError(null); loadNFTsRef.current() }}
+            onClick={refresh}
             className="px-4 py-2 rounded-lg bg-cyan-500/20 text-cyan-300 text-sm border border-cyan-500/30 hover:bg-amber-500/30 transition-colors"
           >
             {showRecentMintBanner ? 'Check Again Now' : 'Refresh'}

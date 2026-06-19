@@ -1,32 +1,21 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Lock, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import { useWalletClient, useChainId } from 'wagmi'
-import { createPublicClient, http, fallback, getAddress } from 'viem'
+import { getAddress } from 'viem'
 import { arcTestnet } from '@/config/chains'
 import { useArcWallet } from '@/hooks/useArcWallet'
 import { useArcWriteContract } from '@/hooks/useArcWriteContract'
+import { useNFTOwnership } from '@/hooks/useNFTOwnership'
 import { ARC_COLLECTION } from '@/config/arcCollection'
 import { ARC_TESTNET, FAJUCAR_COLLECTION_ADDRESS } from '@/config/contracts'
 import FajucarCollectionAbi from '@/abis/FajucarCollection.json'
+import { arcClient } from '@/lib/arcClient'
 import { loadProfile } from '@/components/Agents/agentConstants'
 
 const API_BASE = 'http://localhost:3002/api/explorer'
-
-// Dedicated Arc Testnet client — same pattern as MyNFTsPage. Avoids usePublicClient()
-// returning undefined when the connected wallet is on a different chain, which would
-// prevent checkOwnership from reading on-chain NFT state after page reload.
-const arcClient = createPublicClient({
-  chain: arcTestnet,
-  transport: fallback([
-    http('https://rpc.testnet.arc.network'),
-    http('https://rpc.blockdaemon.testnet.arc.network'),
-    http('https://rpc.drpc.testnet.arc.network'),
-    http('https://rpc.quicknode.testnet.arc.network'),
-  ]),
-})
 
 type Phase = {
   modelId: number
@@ -68,21 +57,6 @@ function isValidContractAddress(value: string | undefined): value is `0x${string
   return s.startsWith('0x') && s.length === 42
 }
 
-// ArcScan API response types (blockscout-compatible)
-type ArcScanAddress = { hash: string }
-type ArcScanToken  = { address_hash: string }
-type ArcScanTotal  = { token_id?: string }
-type ArcScanTransfer = {
-  from:             ArcScanAddress
-  token:            ArcScanToken
-  total:            ArcScanTotal
-  transaction_hash: string
-}
-
-const ARCSCAN_API     = 'https://testnet.arcscan.app/api/v2'
-const MINTBYID_SEL    = '0x3c51c82b' // keccak256("mintById(uint256)")[:4]
-const ZERO_ADDRESS    = '0x0000000000000000000000000000000000000000'
-
 export function AgentAchievements() {
   const { t } = useTranslation()
   const { address, signingAddress, isConnected, authMethod, pendingGoogleWallet, ready } = useArcWallet()
@@ -95,10 +69,30 @@ export function AgentAchievements() {
   const contractAddress = FAJUCAR_COLLECTION_ADDRESS
   const hasCollection = isValidContractAddress(contractAddress)
 
-  // Diagnostic: log every render so we can confirm address + ready state in the console
-  console.log('[Achievements] render —', { address, ready, contractAddress: contractAddress || '(empty)' })
+  // ── NFT ownership via shared hook (localStorage cache → instant display) ───
+  // Pass null until Privy is ready so the hook doesn't fire before auth is set.
+  const {
+    mints,
+    ownedTokenIds,
+    loading: ownershipLoading,
+    refresh: refreshOwnership,
+  } = useNFTOwnership(ready ? address : null, contractAddress)
 
-  const [ownedModelIds, setOwnedModelIds] = useState<Set<number>>(new Set())
+  // Derive which model types are owned from ArcScan mint records + ownerOf results.
+  // Also tracks optimistic mints (just-minted models not yet indexed by ArcScan).
+  const [optimisticModelIds, setOptimisticModelIds] = useState<Set<number>>(new Set())
+
+  const ownedModelIds = useMemo(() => {
+    const set = new Set<number>()
+    for (const mint of mints) {
+      if (mint.modelId !== null && ownedTokenIds.has(mint.tokenId)) {
+        set.add(mint.modelId)
+      }
+    }
+    for (const id of optimisticModelIds) set.add(id)
+    return set
+  }, [mints, ownedTokenIds, optimisticModelIds])
+
   const [mintingId, setMintingId] = useState<number | null>(null)
   const [hasAgentConfig, setHasAgentConfig] = useState(false)
   const [txCount, setTxCount] = useState<number | null>(null)
@@ -121,98 +115,6 @@ export function AgentAchievements() {
     return () => { cancelled = true }
   }, [address])
 
-  // Check which models are already minted.
-  // FajucarCollection's tokenOfOwnerByIndex is broken (enumerable out of sync with balanceOf)
-  // and all tokens share the same IPFS tokenURI, so we cannot distinguish model on-chain.
-  // Instead we query ArcScan token-transfer history, decode modelId from each mint tx's
-  // raw_input (mintById selector 0x3c51c82b), then verify current ownership via ownerOf.
-  useEffect(() => {
-    if (!ready || !address || !isValidContractAddress(contractAddress)) return
-    const contract = contractAddress
-    let cancelled = false
-
-    const checkOwnership = async () => {
-      try {
-        console.log('[Achievements] checkOwnership — address:', address, 'contract:', contract)
-
-        // ── Step 1: get all ERC-721 transfers for this address ───────────
-        const transfersRes = await fetch(
-          `${ARCSCAN_API}/addresses/${address}/token-transfers?type=ERC-721`,
-          { signal: AbortSignal.timeout(10000) }
-        )
-        if (!transfersRes.ok) {
-          console.warn('[Achievements] ArcScan token-transfers failed:', transfersRes.status)
-          return
-        }
-        const { items = [] } = await transfersRes.json() as { items?: ArcScanTransfer[] }
-
-        // Filter: minted (from=0x0) from this specific contract
-        const mints = items.filter(item =>
-          item.from?.hash?.toLowerCase()          === ZERO_ADDRESS &&
-          item.token?.address_hash?.toLowerCase() === contract.toLowerCase() &&
-          !!item.transaction_hash &&
-          !!item.total?.token_id
-        )
-        console.log('[Achievements] mints found:', mints.length)
-
-        if (cancelled) return
-        if (mints.length === 0) { setOwnedModelIds(new Set()); return }
-
-        // ── Step 2: decode modelId from each mint tx's raw_input ─────────
-        // Stop early once all 3 model types have a candidate token.
-        const modelToToken = new Map<number, bigint>()
-        for (const mint of mints) {
-          if (cancelled || modelToToken.size === 3) break
-          const txHash  = mint.transaction_hash
-          const tokenId = BigInt(mint.total.token_id!)
-          try {
-            const txRes = await fetch(`${ARCSCAN_API}/transactions/${txHash}`, { signal: AbortSignal.timeout(8000) })
-            if (!txRes.ok) continue
-            const tx = await txRes.json() as { raw_input?: string }
-            const raw = tx?.raw_input ?? ''
-            if (!raw.startsWith(MINTBYID_SEL)) continue
-            const modelId = parseInt(raw.slice(-64), 16)
-            console.log(`[Achievements] tx ${txHash.slice(0, 10)}… tokenId ${tokenId} → modelId ${modelId}`)
-            if (modelId >= 1 && modelId <= 3 && !modelToToken.has(modelId)) {
-              modelToToken.set(modelId, tokenId)
-            }
-          } catch (err) {
-            console.warn('[Achievements] tx fetch error:', err)
-          }
-        }
-        console.log('[Achievements] modelToToken:', [...modelToToken.entries()].map(([m, t]) => `${m}→${t}`))
-
-        // ── Step 3: confirm current ownership via ownerOf ─────────────────
-        const modelIds = new Set<number>()
-        for (const [modelId, tokenId] of modelToToken) {
-          if (cancelled) return
-          try {
-            const owner = await arcClient.readContract({
-              address: contract,
-              abi: FajucarCollectionAbi as never,
-              functionName: 'ownerOf',
-              args: [tokenId],
-            }) as string
-            if (owner.toLowerCase() === address.toLowerCase()) {
-              modelIds.add(modelId)
-            } else {
-              console.log(`[Achievements] tokenId ${tokenId} (model ${modelId}) no longer owned`)
-            }
-          } catch (err) {
-            console.warn(`[Achievements] ownerOf(${tokenId}) error:`, err)
-          }
-        }
-
-        console.log('[Achievements] final owned modelIds:', [...modelIds])
-        if (!cancelled) setOwnedModelIds(modelIds)
-      } catch (err) {
-        console.error('[Achievements] checkOwnership error:', err)
-      }
-    }
-
-    checkOwnership()
-    return () => { cancelled = true }
-  }, [ready, address, contractAddress])
 
   const phaseUnlocked = [
     isConnected,
@@ -283,7 +185,11 @@ export function AgentAchievements() {
         await arcClient.waitForTransactionReceipt({ hash })
       }
 
-      setOwnedModelIds(prev => new Set([...prev, phase.modelId]))
+      // Optimistically mark as owned so the card flips immediately.
+      // ArcScan may take ~10s to index the mint, so refreshOwnership is
+      // scheduled after a delay rather than called immediately.
+      setOptimisticModelIds(prev => new Set([...prev, phase.modelId]))
+      window.setTimeout(() => refreshOwnership(), 12_000)
       const explorerUrl = `${arcTestnet.blockExplorers.default.url}/tx/${hash}`
       toast.success(
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

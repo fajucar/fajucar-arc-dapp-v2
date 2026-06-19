@@ -130,15 +130,14 @@ const TOOLS = [
 // explicitly asks who the agent is — never repeat it on every reply.
 function introInstruction(n, isFirstMessage) {
   return isFirstMessage
-    ? `This is the first message of the conversation: introduce yourself by name and role (e.g. "Olá! Eu sou o ${n}, seu guia explorador na Arc Testnet") before answering.`
+    ? `This is the first message of the conversation: introduce yourself by name and role (e.g. "Hi! I'm ${n}, your guide on Arc Testnet") before answering.`
     : `This is NOT the first message of the conversation: do NOT introduce yourself or greet the user again. Only restate your name/role if the user explicitly asks who you are. Go straight to the point.`
 }
 
-// ── Language-detection / response-language instruction ───────────────────────
-// Tells the model to mirror the language of the user's latest message in
-// every reply (greetings, explanations, confirmations, everything).
+// ── Language instruction ──────────────────────────────────────────────────────
+// Always respond in English regardless of what language the user writes in.
 function languageInstruction() {
-  return `LANGUAGE: Detect the language of the user's most recent message (Portuguese or English) and respond ENTIRELY in that same language — including greetings, explanations, confirmations and any other text. If the user writes in English, reply in English; if in Portuguese, reply in Portuguese. If the language is unclear or mixed, default to Portuguese.`
+  return `LANGUAGE: Always respond in English, regardless of the language the user writes in.`
 }
 
 // ── Lightweight PT/EN language detector for the user's latest message ────────
@@ -414,9 +413,7 @@ router.post('/chat', async (req, res) => {
   const systemPrompt = basePrompt + walletHint + withdrawalHint
   const groq = getClient(apiKey)
 
-  const lastMsg = messages[messages.length - 1]
-  const userText = typeof lastMsg.content === 'string' ? lastMsg.content : ''
-  const lang = detectLang(userText)
+  const lang = 'en'
 
   const allMessages = [
     { role: 'system', content: systemPrompt },

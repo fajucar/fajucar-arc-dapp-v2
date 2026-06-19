@@ -469,17 +469,22 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
     await sendMessage(updated)
   }, [apiMessages, executeAction, pushDisplay, sendMessage])
 
-  const handleCancel = useCallback(async () => {
+  const handleCancel = useCallback(() => {
     const pending = pendingIntentRef.current
     if (!pending) return
     pendingIntentRef.current = null
 
+    // Settle the card visually
     setDisplayMessages(prev => prev.map(m =>
       m.kind === 'intent' && m.toolUseId === pending.toolUseId
         ? { ...m, settled: true }
         : m
     ))
 
+    // Record the cancelled tool_result so conversation history stays valid
+    // (OpenAI format requires a tool message for every tool_use).
+    // Do NOT call sendMessage — triggering the LLM after cancel causes it to
+    // recall or re-attempt the action despite the user's explicit rejection.
     const toolResult: ApiMessage = {
       role:    'user',
       content: [{
@@ -489,10 +494,8 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
         is_error:    true,
       }],
     }
-    const updated = [...apiMessages, toolResult]
-    setApiMessages(updated)
-    await sendMessage(updated)
-  }, [apiMessages, sendMessage, t])
+    setApiMessages(prev => [...prev, toolResult])
+  }, [t])
 
   // ── Render ────────────────────────────────────────────────────────────────
   const isBlocked = loading || hasPendingIntent
