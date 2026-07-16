@@ -51,13 +51,13 @@ export function TVLHeader({ pools, loading }: TVLHeaderProps) {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-emerald-400" />
-            <h2 className="text-lg font-semibold text-white">Liquidez Total</h2>
+            <h2 className="text-lg font-semibold text-white">Total Liquidity</h2>
           </div>
           <div className="text-3xl font-bold text-white">
             {formatUSD(totalUSD)}
           </div>
           <div className="text-sm text-slate-400">
-            {activePoolsCount} pool{activePoolsCount !== 1 ? 's' : ''} {activePoolsCount !== 1 ? 'ativos' : 'ativo'}
+            {activePoolsCount} active pool{activePoolsCount !== 1 ? 's' : ''}
           </div>
         </div>
 
@@ -65,7 +65,7 @@ export function TVLHeader({ pools, loading }: TVLHeaderProps) {
           <div className="text-xs text-slate-400">Volume 24h</div>
           <div className="text-sm font-medium text-slate-500">--</div>
           <div className="pt-2 border-t border-slate-700/30 space-y-1">
-            <div className="text-xs text-slate-400">Taxas 24h</div>
+            <div className="text-xs text-slate-400">Fees 24h</div>
             <div className="text-sm font-medium text-slate-500">--</div>
           </div>
         </div>
@@ -89,7 +89,7 @@ export function TVLHeader({ pools, loading }: TVLHeaderProps) {
             )
           })}
         </div>
-        <div className="text-xs text-slate-500 mt-2">Distribuição por pool (em USD)</div>
+        <div className="text-xs text-slate-500 mt-2">Distribution per pool (in USD)</div>
       </div>
     </motion.div>
   )

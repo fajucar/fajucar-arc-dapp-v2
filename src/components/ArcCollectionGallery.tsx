@@ -163,7 +163,7 @@ function NFTCard({
           {isAlreadyOwned ? (
             'Minted ✓'
           ) : walletNotReady ? (
-            'Preparando carteira...'
+            'Preparing wallet...'
           ) : isMintingThisCard ? (
             <span className="flex items-center justify-center gap-2">
               <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -213,10 +213,10 @@ function NFTDetailModal({
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  const rarityValue = item.traits?.find(t => t.label === 'Raridade')?.value.toLowerCase();
+  const rarityValue = item.traits?.find(t => t.label === 'Rarity')?.value.toLowerCase();
   const modalBorder =
-    rarityValue === 'raro' ? 'border-amber-500/40' :
-    rarityValue === 'incomum' ? 'border-purple-500/40' :
+    rarityValue === 'rare' ? 'border-amber-500/40' :
+    rarityValue === 'uncommon' ? 'border-purple-500/40' :
     'border-cyan-500/30';
 
   return (
@@ -235,7 +235,7 @@ function NFTDetailModal({
         {/* Close button */}
         <button
           onClick={onClose}
-          aria-label="Fechar"
+          aria-label="Close"
           className="absolute top-3 right-3 z-10 rounded-full p-1.5 bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
         >
           <X className="h-4 w-4" />
@@ -262,14 +262,14 @@ function NFTDetailModal({
 
           {item.traits && item.traits.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Atributos</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Attributes</p>
               <div className="flex flex-wrap gap-2">
                 {item.traits.map(({ label, value }) => {
-                  const isRarity = label === 'Raridade';
+                  const isRarity = label === 'Rarity';
                   const chipClass = isRarity
-                    ? value.toLowerCase() === 'raro'
+                    ? value.toLowerCase() === 'rare'
                       ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
-                      : value.toLowerCase() === 'incomum'
+                      : value.toLowerCase() === 'uncommon'
                       ? 'border-purple-500/30 bg-purple-500/10 text-purple-300'
                       : 'border-cyan-500/20 bg-cyan-500/5 text-cyan-300'
                     : 'border-slate-600/50 bg-slate-800/50 text-slate-300';
@@ -302,13 +302,13 @@ function NFTDetailModal({
                   : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-400 hover:to-blue-500 shadow-lg shadow-cyan-500/20'
                 }`}
             >
-              {isAlreadyOwned ? 'Já mintado ✓' : walletNotReady ? 'Preparando carteira...' : isMinting ? 'Mintando...' : 'Mintar este NFT'}
+              {isAlreadyOwned ? 'Already minted ✓' : walletNotReady ? 'Preparing wallet...' : isMinting ? 'Minting...' : 'Mint this NFT'}
             </motion.button>
             <button
               onClick={onClose}
               className="px-5 py-3 rounded-xl border border-slate-700 bg-slate-800/60 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white hover:border-slate-600 transition-colors"
             >
-              Fechar
+              Close
             </button>
           </div>
         </div>
@@ -398,7 +398,7 @@ export function ArcCollectionGallery() {
 
   const handleMint = async (item: typeof ARC_COLLECTION[0]) => {
     if (walletNotReady) {
-      toast.error('Carteira em criação. Aguarde alguns segundos e tente novamente.');
+      toast.error('Wallet being created. Please wait a few seconds and try again.');
       return;
     }
 
@@ -579,7 +579,7 @@ export function ArcCollectionGallery() {
         </p>
         {authMethod === 'social' && (
           <p className="text-xs text-cyan-400/90 mt-2">
-            Login Google — saldos na carteira Circle; mint assinado pela carteira Privy quando disponível.
+            Google login — balances in Circle wallet; mint signed by Privy wallet when available.
           </p>
         )}
       </div>
@@ -587,7 +587,7 @@ export function ArcCollectionGallery() {
       {walletNotReady && (
         <div className="mb-6 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
           <p className="text-cyan-200 text-sm">
-            Criando sua carteira embedded… Isso leva alguns segundos após o login Google.
+            Creating your embedded wallet… This takes a few seconds after Google login.
           </p>
         </div>
       )}

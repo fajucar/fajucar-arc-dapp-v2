@@ -6,8 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePublicClient, useChainId } from 'wagmi'
 import { useArcWallet } from '@/hooks/useArcWallet'
 import { getV3Addresses } from '../config'
-import { getSqrtRatioAtTick, getAmountsForLiquidity } from '../lib/liquidityMath'
-import { ARC_TESTNET_TOKENS } from '@/constants/tokens'
+import { makeToken, buildPool, positionAmounts } from '../lib/sdk'
+import { getArcTokenInfo } from '../lib/tokenInfo'
 import UniswapV3FactoryAbi from '@/abis/v3/UniswapV3Factory.json'
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -62,7 +62,7 @@ const NPM_ABI = [
   },
 ] as const
 
-const POOL_SLOT0_ABI = [
+const POOL_STATE_ABI = [
   {
     inputs: [],
     name: 'slot0',
@@ -75,6 +75,13 @@ const POOL_SLOT0_ABI = [
       { name: 'feeProtocol', type: 'uint8' },
       { name: 'unlocked', type: 'bool' },
     ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'liquidity',
+    outputs: [{ name: '', type: 'uint128' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -145,14 +152,6 @@ function writeCache(chainId: number, user: string, tokenIds: bigint[]) {
   }
 }
 
-function getTokenInfo(addr: string): { symbol: string; decimals: number } {
-  const a = addr.toLowerCase()
-  const found = ARC_TESTNET_TOKENS.find((t) => t.address.toLowerCase() === a)
-  return found
-    ? { symbol: found.symbol, decimals: found.decimals }
-    : { symbol: addr.slice(0, 6) + '…', decimals: 18 }
-}
-
 export function useV3Positions(enabled: boolean) {
   const chainId = useChainId()
   const { address } = useArcWallet()
@@ -195,14 +194,15 @@ export function useV3Positions(enabled: boolean) {
         writeCache(chainId ?? 0, address, tokenIds)
       }
       const owned = tokenIds
-      // Cache pool slot0 lookups per (token0,token1,fee) — different positions may share a pool
-      const poolSlot0Cache = new Map<string, { currentTick: number; sqrtPriceX96: bigint }>()
-      const getPoolSlot0 = async (token0: `0x${string}`, token1: `0x${string}`, fee: number) => {
+      // Cache pool state lookups per (token0,token1,fee) — different positions may share a pool
+      const poolStateCache = new Map<string, { currentTick: number; sqrtPriceX96: bigint; poolLiquidity: bigint }>()
+      const getPoolState = async (token0: `0x${string}`, token1: `0x${string}`, fee: number) => {
         const key = `${token0.toLowerCase()}-${token1.toLowerCase()}-${fee}`
-        const cached = poolSlot0Cache.get(key)
+        const cached = poolStateCache.get(key)
         if (cached) return cached
         let currentTick = 0
         let sqrtPriceX96 = 0n
+        let poolLiquidity = 0n
         try {
           const poolAddr = (await publicClient.readContract({
             address: addrs.v3Factory,
@@ -211,19 +211,27 @@ export function useV3Positions(enabled: boolean) {
             args: [token0, token1, fee],
           })) as `0x${string}`
           if (poolAddr && poolAddr.toLowerCase() !== ZERO_ADDRESS) {
-            const slot0 = (await publicClient.readContract({
-              address: poolAddr,
-              abi: POOL_SLOT0_ABI,
-              functionName: 'slot0',
-            })) as readonly [bigint, number, number, number, number, number, boolean]
+            const [slot0, liq] = await Promise.all([
+              publicClient.readContract({
+                address: poolAddr,
+                abi: POOL_STATE_ABI,
+                functionName: 'slot0',
+              }) as Promise<readonly [bigint, number, number, number, number, number, boolean]>,
+              publicClient.readContract({
+                address: poolAddr,
+                abi: POOL_STATE_ABI,
+                functionName: 'liquidity',
+              }) as Promise<bigint>,
+            ])
             currentTick = slot0[1]
             sqrtPriceX96 = slot0[0]
+            poolLiquidity = liq
           }
         } catch {
           // pool not found / not initialized
         }
-        const result = { currentTick, sqrtPriceX96 }
-        poolSlot0Cache.set(key, result)
+        const result = { currentTick, sqrtPriceX96, poolLiquidity }
+        poolStateCache.set(key, result)
         return result
       }
       const result: V3PositionInfo[] = []
@@ -240,18 +248,19 @@ export function useV3Positions(enabled: boolean) {
             , , token0, token1, fee, tickLower, tickUpper, liquidity,
             , , tokensOwed0, tokensOwed1
           ] = pos as readonly [unknown, unknown, `0x${string}`, `0x${string}`, number, number, number, bigint, unknown, unknown, bigint, bigint]
-          const info0 = getTokenInfo(token0)
-          const info1 = getTokenInfo(token1)
+          const info0 = getArcTokenInfo(token0)
+          const info1 = getArcTokenInfo(token1)
           const sym0 = info0.symbol
           const sym1 = info1.symbol
           const pairLabel = `${sym0}/${sym1}`
           const feePct = fee / 1_000_000
           const feeLabel = feePct >= 1 ? `${feePct}%` : `${fee / 10_000}%`
-          const { currentTick, sqrtPriceX96 } = await getPoolSlot0(token0, token1, fee)
+          const { currentTick, sqrtPriceX96, poolLiquidity } = await getPoolState(token0, token1, fee)
           const inRange = currentTick >= tickLower && currentTick <= tickUpper
-          const sqrtA = getSqrtRatioAtTick(tickLower)
-          const sqrtB = getSqrtRatioAtTick(tickUpper)
-          const { amount0, amount1 } = getAmountsForLiquidity(sqrtPriceX96, sqrtA, sqrtB, liquidity)
+          const sdkToken0 = makeToken(chainId ?? 0, token0, info0.decimals, sym0)
+          const sdkToken1 = makeToken(chainId ?? 0, token1, info1.decimals, sym1)
+          const pool = buildPool(sdkToken0, sdkToken1, fee, sqrtPriceX96, poolLiquidity, currentTick)
+          const { amount0, amount1 } = positionAmounts(pool, tickLower, tickUpper, liquidity)
           result.push({
             tokenId: id,
             token0,

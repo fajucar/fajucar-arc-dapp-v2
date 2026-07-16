@@ -80,13 +80,27 @@ export function useArcWallet(): ArcWalletState {
   const externalPrivyWallet = wallets.find((w) => !isPrivyEmbeddedWallet(w) && w.address)
   const signingPrivyWallet = externalPrivyWallet ?? embeddedWallet
 
+  // @privy-io/wagmi's WagmiProvider syncs EVERY Privy wallet — including the embedded wallet
+  // created for social/email logins — into wagmi as its own connector, then calls reconnect().
+  // That means wagmiConnected can be true even when the user has no external wallet at all, and
+  // (because reconnect() restores whichever connector wagmi's storage last marked "current")
+  // it can end up pointing at a STALE connector from an earlier session — e.g. a real MetaMask
+  // connection — instead of the embedded wallet's own provider. That mismatch is exactly what
+  // pops a MetaMask prompt for a user who logged in via Google and never touched MetaMask.
+  // Fix: only trust wagmi's connected address/connector when Privy itself reports a genuine
+  // EXTERNAL wallet (one the user explicitly linked, not Privy-managed). Otherwise resolve the
+  // address/signing method from Privy's own wallet list, which reflects the real session
+  // regardless of wagmi's connector-reconciliation timing.
+  const hasExternalWallet = !!externalPrivyWallet?.address
+  const useWagmiForSigning = wagmiConnected && hasExternalWallet
+
   // Privy v3: user.google tem `email` e `name` (tipados), mas NÃO `picture`.
   // Google profile pictures não são expostos pela API do Privy v3.27.x.
   const googleAccount = user?.linkedAccounts?.find((a) => a.type === 'google_oauth') as
     | { email?: string; name?: string }
     | undefined
 
-  const signingAddress = wagmiConnected
+  const signingAddress = useWagmiForSigning
     ? wagmiAddress
     : signingPrivyWallet?.address
     ? (signingPrivyWallet.address as `0x${string}`)
@@ -94,7 +108,7 @@ export function useArcWallet(): ArcWalletState {
     ? persistedPrivyAddress
     : undefined
 
-  const address: `0x${string}` | undefined = wagmiConnected
+  const address: `0x${string}` | undefined = useWagmiForSigning
     ? wagmiAddress
     : (embeddedWallet?.address as `0x${string}` | undefined) ??
       persistedPrivyAddress ??
@@ -103,7 +117,9 @@ export function useArcWallet(): ArcWalletState {
 
   const isConnected = wagmiConnected || authenticated
   const hasEmbeddedWallet = !!embeddedWallet?.address
-  const authMethod: AuthMethod = wagmiConnected ? 'wallet' : authenticated ? 'social' : 'none'
+  const authMethod: AuthMethod = authenticated
+    ? (hasExternalWallet ? 'wallet' : 'social')
+    : (wagmiConnected ? 'wallet' : 'none')
   const pendingGoogleWallet = authenticated && !hasEmbeddedWallet && !wagmiConnected
   const isGoogleLogin = authMethod === 'social' && !!googleAccount
 
@@ -146,7 +162,7 @@ export function useArcWallet(): ArcWalletState {
   const error = authMethod === 'wallet' ? wagmiError : privyError
 
   const getWalletClient = useCallback(async (): Promise<WalletClient | null> => {
-    const wallet = wagmiConnected ? null : signingPrivyWallet
+    const wallet = useWagmiForSigning ? null : signingPrivyWallet
     if (!wallet?.address) return null
     try {
       await wallet.switchChain(privyArcTestnet.id)
@@ -160,14 +176,14 @@ export function useArcWallet(): ArcWalletState {
       console.warn('[Privy] getWalletClient:', err)
       return null
     }
-  }, [wagmiConnected, signingPrivyWallet])
+  }, [useWagmiForSigning, signingPrivyWallet])
 
   const signWithPrivy = async (
     fn: (client: WalletClient, account: `0x${string}`) => Promise<`0x${string}`>
   ) => {
     const wallet = signingPrivyWallet
     if (!wallet?.address) {
-      throw new Error('Carteira de assinatura não pronta. Aguarde a configuração da wallet Privy.')
+      throw new Error('Signing wallet not ready. Wait for the Privy wallet to finish setting up.')
     }
     setPrivyPending(true)
     setPrivyError(null)
@@ -192,7 +208,7 @@ export function useArcWallet(): ArcWalletState {
 
   const sendUsdc = async (to: string, amountUsdc: string) => {
     if (!CONSTANTS.USDC_ADDRESS || CONSTANTS.USDC_ADDRESS === '0x0000000000000000000000000000000000000000') {
-      throw new Error('Endereço do contrato USDC não configurado')
+      throw new Error('USDC contract address not configured')
     }
 
     const amount = parseUnits(amountUsdc, 6)
@@ -217,7 +233,7 @@ export function useArcWallet(): ArcWalletState {
         })
       )
     } else {
-      throw new Error('Nenhuma carteira conectada')
+      throw new Error('No wallet connected')
     }
   }
 

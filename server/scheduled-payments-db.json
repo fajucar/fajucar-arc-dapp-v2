@@ -1,0 +1,928 @@
+[
+  {
+    "id": "0ecc724b-c4bf-4a83-ac07-46dc3dd69242",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T11:35:36Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T11:35:36.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: Invalid credentials.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T11:36:00.370Z",
+        "error": "Circle API error: Invalid credentials."
+      }
+    ],
+    "createdAt": "2026-07-03T11:33:37.778Z",
+    "executedAt": null
+  },
+  {
+    "id": "7b3c45a3-4c19-4337-9299-4e0ae700c847",
+    "walletAddress": "0x0d60861b4d6919b956b10c226f85d7456d9d2114",
+    "recipient": "0x66CAdaB3fCCe0343752A919c2929E8e3848Ff4e2",
+    "amount": "5",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T12:09:59Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T12:09:59.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T12:10:00.698Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T12:08:04.623Z",
+    "executedAt": null
+  },
+  {
+    "id": "c72b498e-fd84-4729-b91b-6f803369e47c",
+    "walletAddress": "0x0d60861b4d6919b956b10c226f85d7456d9d2114",
+    "recipient": "0xcF87E80B08f645fa75a89194400DD48A5d49ab07",
+    "amount": "5",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T13:01:10Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T13:01:10.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T13:02:01.069Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T12:59:42.349Z",
+    "executedAt": null
+  },
+  {
+    "id": "76035c33-d02e-4213-86ca-f0473c490b86",
+    "walletAddress": "0x0d60861b4d6919b956b10c226f85d7456d9d2114",
+    "recipient": "0xcF87E80B08f645fa75a89194400DD48A5d49ab07",
+    "amount": "5",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T13:10:43Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T13:10:43.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T13:11:00.567Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T13:09:15.033Z",
+    "executedAt": null
+  },
+  {
+    "id": "8f95d5e9-a0f9-4feb-82c8-9518877aab85",
+    "walletAddress": "0x0d60861b4d6919b956b10c226f85d7456d9d2114",
+    "recipient": "0xcF87E80B08f645fa75a89194400DD48A5d49ab07",
+    "amount": "3",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T13:13:00Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T13:13:00.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T13:13:00.471Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T13:10:52.143Z",
+    "executedAt": null
+  },
+  {
+    "id": "b69ebbf5-458d-49e4-a41d-95e24b5aba39",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T06:00:00Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T06:00:00.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T13:17:00.955Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T13:16:51.620Z",
+    "executedAt": null
+  },
+  {
+    "id": "5e47067f-c1af-4495-88f4-3ec6a52ca704",
+    "walletAddress": "0x0d60861b4d6919b956b10c226f85d7456d9d2114",
+    "recipient": "0xcF87E80B08f645fa75a89194400DD48A5d49ab07",
+    "amount": "3",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T13:13:00Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T13:13:00.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T13:35:00.636Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T13:34:57.170Z",
+    "executedAt": null
+  },
+  {
+    "id": "507aa3e0-ffb5-47a2-a455-746ff6c05f3c",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-04T13:00:00Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-04T13:00:00.000Z",
+    "status": "cancelled",
+    "txHash": null,
+    "lastError": null,
+    "history": [],
+    "createdAt": "2026-07-03T14:51:22.604Z",
+    "executedAt": null
+  },
+  {
+    "id": "350a04d7-d173-4f0c-aa5b-ddf06998e11a",
+    "walletAddress": "0x0d60861b4d6919b956b10c226f85d7456d9d2114",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T15:22:11Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T15:22:11.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T15:23:00.797Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T15:20:13.276Z",
+    "executedAt": null
+  },
+  {
+    "id": "6e3141fc-0415-4703-b10c-1671a48c12b0",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xprivytestsessionaddress0000000000000001",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T15:38:38Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T15:38:38.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T15:39:00.772Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T15:37:29.710Z",
+    "executedAt": null
+  },
+  {
+    "id": "0edda049-2101-419e-ac66-76c00f89d270",
+    "walletAddress": "0x0d60861b4d6919b956b10c226f85d7456d9d2114",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T16:17:30Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T16:17:30.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T16:18:00.609Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T16:15:31.578Z",
+    "executedAt": null
+  },
+  {
+    "id": "98ff0ca4-b842-4aac-a236-6dca6b02307c",
+    "walletAddress": "0x0d60861b4d6919b956b10c226f85d7456d9d2114",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T16:23:19Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T16:23:19.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T16:24:00.621Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      },
+      {
+        "executedAt": "2026-07-03T16:24:00.800Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T16:21:21.152Z",
+    "executedAt": null
+  },
+  {
+    "id": "ef025d24-e0a8-44fe-8a54-cabd37d3d068",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T16:23:42Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T16:23:42.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T16:24:01.078Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      },
+      {
+        "executedAt": "2026-07-03T16:24:01.207Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T16:21:44.701Z",
+    "executedAt": null
+  },
+  {
+    "id": "34641397-a400-4dfa-b41c-dc8dee40d69d",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0xcF87E80B08f645fa75a89194400DD48A5d49ab07",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T16:52:53Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T16:52:53.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T16:53:00.613Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T16:50:54.575Z",
+    "executedAt": null
+  },
+  {
+    "id": "c0b96ac0-161e-476a-bc67-59660679b942",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0xcF87E80B08f645fa75a89194400DD48A5d49ab07",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T17:16:43Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T17:16:43.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T17:17:00.789Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T17:14:45.083Z",
+    "executedAt": null
+  },
+  {
+    "id": "2577f8d5-f3e3-4eb2-aac3-2690c1071fbc",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xprivytestsessionforbalancecheck0000001",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T21:17:33Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T21:17:33.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T21:18:01.567Z",
+        "error": "Circle API error: the asset amount owned by the wallet is insufficient for the transaction."
+      }
+    ],
+    "createdAt": "2026-07-03T21:16:29.517Z",
+    "executedAt": null
+  },
+  {
+    "id": "40fdf769-aa13-45f8-8821-0de82ed6152f",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xprivytestsessionforviemsigner00000001",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T21:41:20Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T21:41:20.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 0 (raw), needs 1000000 (raw) — 1 USDC at 6 decimals.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T21:42:00.790Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 0 (raw), needs 1000000 (raw) — 1 USDC at 6 decimals."
+      }
+    ],
+    "createdAt": "2026-07-03T21:40:17.269Z",
+    "executedAt": null
+  },
+  {
+    "id": "a99d9b06-01dd-45e5-86df-ffe8e8436fe4",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xprivytestsessionforviemsigner00000002",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T21:44:38Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T21:44:38.000Z",
+    "status": "executed",
+    "txHash": "0x64a154d0e2eebf75230376c75c7c75a94131bd7a93585b5cdaf48e1ebd39c6c9",
+    "lastError": null,
+    "history": [
+      {
+        "executedAt": "2026-07-03T21:45:05.411Z",
+        "txHash": "0x64a154d0e2eebf75230376c75c7c75a94131bd7a93585b5cdaf48e1ebd39c6c9"
+      }
+    ],
+    "createdAt": "2026-07-03T21:43:35.810Z",
+    "executedAt": "2026-07-03T21:45:05.411Z"
+  },
+  {
+    "id": "333cff17-c123-4c7d-894c-3f17b300dc1a",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xprivytestsessionforcirclefixtest0001",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "1",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T22:22:30Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T22:22:30.000Z",
+    "status": "executed",
+    "txHash": "0x38bcee07fb52173d36076df65562e6bcfd77a7697b314be6b8c31a7df446d64a",
+    "lastError": null,
+    "history": [
+      {
+        "executedAt": "2026-07-03T22:23:06.135Z",
+        "txHash": "0x38bcee07fb52173d36076df65562e6bcfd77a7697b314be6b8c31a7df446d64a"
+      }
+    ],
+    "createdAt": "2026-07-03T22:21:27.034Z",
+    "executedAt": "2026-07-03T22:23:06.135Z"
+  },
+  {
+    "id": "daa4d192-9266-4f5a-9793-8810c91a257c",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0xa296c7038ac25C06F6ED952182b2Fb64A98bDfCF",
+    "amount": "10",
+    "token": "USDC",
+    "scheduledFor": "2026-07-04T00:04:45Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-04T00:04:45.000Z",
+    "status": "executed",
+    "txHash": "0xeb29ad3116ff1093cda0c4ba863f61488d45751b274e555a07da3ef5a4dc05bf",
+    "lastError": null,
+    "history": [
+      {
+        "executedAt": "2026-07-04T00:05:03.174Z",
+        "txHash": "0xe15165febdd956db6eb3f55583ea70259ca988275129e12a582dc8d28e7d393b"
+      },
+      {
+        "executedAt": "2026-07-04T00:05:03.527Z",
+        "txHash": "0xc67630777f96bbe2ed66dbae3d8a643f52f9a7d43d3102a63be0857651c370ba"
+      },
+      {
+        "executedAt": "2026-07-04T00:05:23.576Z",
+        "txHash": "0xeb29ad3116ff1093cda0c4ba863f61488d45751b274e555a07da3ef5a4dc05bf"
+      }
+    ],
+    "createdAt": "2026-07-03T22:59:47.381Z",
+    "executedAt": "2026-07-04T00:05:23.576Z"
+  },
+  {
+    "id": "68db42e6-fa41-4c95-81ab-0d93c80cba32",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0xa296c7038ac25C06F6ED952182b2Fb64A98bDfCF",
+    "amount": "10",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T23:05:00Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T23:05:00.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 3998776 (raw), needs 10000000 (raw) — 10 USDC at 6 decimals.",
+    "history": [
+      {
+        "executedAt": "2026-07-03T23:05:01.076Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 3998776 (raw), needs 10000000 (raw) — 10 USDC at 6 decimals."
+      },
+      {
+        "executedAt": "2026-07-03T23:05:01.934Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 3998776 (raw), needs 10000000 (raw) — 10 USDC at 6 decimals."
+      }
+    ],
+    "createdAt": "2026-07-03T23:00:26.818Z",
+    "executedAt": null
+  },
+  {
+    "id": "7966b6e6-192e-44c6-8aba-35280fd7b93f",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x66CAdaB3fCCe0343752A919c2929E8e3848Ff4e2",
+    "amount": "5",
+    "token": "USDC",
+    "scheduledFor": "2026-07-04T00:02:08Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-04T00:02:08.000Z",
+    "status": "executed",
+    "txHash": "0x3decb6cdd2aa0fe9bf5b003b3ba4101df379fd100715d38fb47a90c1343aaed9",
+    "lastError": null,
+    "history": [
+      {
+        "executedAt": "2026-07-04T00:03:04.394Z",
+        "txHash": "0x597a252c335e8e63c68f01692b39a26b3c891b36b82c022f38bbfef7c18e9112"
+      },
+      {
+        "executedAt": "2026-07-04T00:03:05.652Z",
+        "txHash": "0xd9048cafd8687c58bc72fdee7e890262c03c63da0b081f50c5f60fa9944a79fe"
+      },
+      {
+        "executedAt": "2026-07-04T00:03:07.883Z",
+        "txHash": "0x3decb6cdd2aa0fe9bf5b003b3ba4101df379fd100715d38fb47a90c1343aaed9"
+      }
+    ],
+    "createdAt": "2026-07-03T23:24:09.897Z",
+    "executedAt": "2026-07-04T00:03:07.883Z"
+  },
+  {
+    "id": "d970513e-cc0a-4a2d-a3cb-eda0e7e3b8ce",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x66CAdaB3fCCe0343752A919c2929E8e3848Ff4e2",
+    "amount": "5",
+    "token": "USDC",
+    "scheduledFor": "2026-07-03T23:30:19Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-03T23:30:19.000Z",
+    "status": "executed",
+    "txHash": "0xefba38ecd1b67d5ba774659da14d7a977e94d106fcfc1ec8edd4b3874ab9875f",
+    "lastError": null,
+    "history": [
+      {
+        "executedAt": "2026-07-03T23:31:01.507Z",
+        "error": "Nonce provided for the transaction is lower than the current nonce of the account.\nTry increasing the nonce or find the latest nonce with `getTransactionCount`.\n\nRequest Arguments:\n  from:  0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65\n  to:    0x3600000000000000000000000000000000000000\n  data:  0xa9059cbb00000000000000000000000066cadab3fcce0343752a919c2929e8e3848ff4e200000000000000000000000000000000000000000000000000000000004c4b40\n \nContract Call:\n  address:   0x3600000000000000000000000000000000000000\n  function:  transfer(address to, uint256 amount)\n  args:              (0x66CAdaB3fCCe0343752A919c2929E8e3848Ff4e2, 5000000)\n  sender:    0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65\n\nDocs: https://viem.sh/docs/contract/writeContract\nDetails: already known\nVersion: viem@2.52.0"
+      },
+      {
+        "executedAt": "2026-07-03T23:31:01.912Z",
+        "error": "Nonce provided for the transaction is lower than the current nonce of the account.\nTry increasing the nonce or find the latest nonce with `getTransactionCount`.\n\nRequest Arguments:\n  from:  0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65\n  to:    0x3600000000000000000000000000000000000000\n  data:  0xa9059cbb00000000000000000000000066cadab3fcce0343752a919c2929e8e3848ff4e200000000000000000000000000000000000000000000000000000000004c4b40\n \nContract Call:\n  address:   0x3600000000000000000000000000000000000000\n  function:  transfer(address to, uint256 amount)\n  args:              (0x66CAdaB3fCCe0343752A919c2929E8e3848Ff4e2, 5000000)\n  sender:    0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65\n\nDocs: https://viem.sh/docs/contract/writeContract\nDetails: nonce too low: next nonce 2, tx nonce 1\nVersion: viem@2.52.0"
+      },
+      {
+        "executedAt": "2026-07-03T23:31:02.073Z",
+        "txHash": "0xefba38ecd1b67d5ba774659da14d7a977e94d106fcfc1ec8edd4b3874ab9875f"
+      }
+    ],
+    "createdAt": "2026-07-03T23:27:21.892Z",
+    "executedAt": "2026-07-03T23:31:02.073Z"
+  },
+  {
+    "id": "647e3097-f1bb-4a2b-bcbb-0f54f2858d75",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0xd4de2458b99D029EF7ca75F3087CAD28E17e20A2",
+    "amount": "5",
+    "token": "USDC",
+    "scheduledFor": "2026-07-04T00:05:31Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-04T00:05:31.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 3990210 (raw), needs 5000000 (raw) — 5 USDC at 6 decimals.",
+    "history": [
+      {
+        "executedAt": "2026-07-04T00:06:00.444Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 3990210 (raw), needs 5000000 (raw) — 5 USDC at 6 decimals."
+      },
+      {
+        "executedAt": "2026-07-04T00:06:01.246Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 3990210 (raw), needs 5000000 (raw) — 5 USDC at 6 decimals."
+      },
+      {
+        "executedAt": "2026-07-04T00:06:01.457Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 3990210 (raw), needs 5000000 (raw) — 5 USDC at 6 decimals."
+      }
+    ],
+    "createdAt": "2026-07-04T00:04:32.942Z",
+    "executedAt": null
+  },
+  {
+    "id": "5f8a01a2-3fbe-4b62-a5c9-56fe9baebc93",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0xd4de2458b99D029EF7ca75F3087CAD28E17e20A2",
+    "amount": "3.9",
+    "token": "USDC",
+    "scheduledFor": "2026-07-04T00:29:51Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-04T00:29:51.000Z",
+    "status": "executed",
+    "txHash": "0x5fc4d48cf989cd70ed82252b3676f740af5742d1ba693172b8de4d65c06207be",
+    "lastError": null,
+    "history": [
+      {
+        "executedAt": "2026-07-04T00:30:02.084Z",
+        "error": "The contract function \"transfer\" reverted with the following reason:\nERC20: transfer amount exceeds balance\n\nContract Call:\n  address:   0x3600000000000000000000000000000000000000\n  function:  transfer(address to, uint256 amount)\n  args:              (0xd4de2458b99D029EF7ca75F3087CAD28E17e20A2, 3900000)\n  sender:    0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65\n\nDocs: https://viem.sh/docs/contract/writeContract\nDetails: execution reverted: ERC20: transfer amount exceeds balance\nVersion: viem@2.52.0"
+      },
+      {
+        "executedAt": "2026-07-04T00:30:02.552Z",
+        "error": "The contract function \"transfer\" reverted with the following reason:\nERC20: transfer amount exceeds balance\n\nContract Call:\n  address:   0x3600000000000000000000000000000000000000\n  function:  transfer(address to, uint256 amount)\n  args:              (0xd4de2458b99D029EF7ca75F3087CAD28E17e20A2, 3900000)\n  sender:    0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65\n\nDocs: https://viem.sh/docs/contract/writeContract\nDetails: execution reverted: ERC20: transfer amount exceeds balance\nVersion: viem@2.52.0"
+      },
+      {
+        "executedAt": "2026-07-04T00:30:03.187Z",
+        "txHash": "0x5fc4d48cf989cd70ed82252b3676f740af5742d1ba693172b8de4d65c06207be"
+      }
+    ],
+    "createdAt": "2026-07-04T00:28:53.675Z",
+    "executedAt": "2026-07-04T00:30:03.187Z"
+  },
+  {
+    "id": "9c043ac1-2eb9-4221-bc71-ea0d46d89f8c",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0xd4de2458b99D029EF7ca75F3087CAD28E17e20A2",
+    "amount": "3.8",
+    "token": "USDC",
+    "scheduledFor": "2026-07-04T00:36:55Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-04T00:36:55.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 88986 (raw), needs 3800000 (raw) — 3.8 USDC at 6 decimals.",
+    "history": [
+      {
+        "executedAt": "2026-07-04T00:37:00.435Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 88986 (raw), needs 3800000 (raw) — 3.8 USDC at 6 decimals."
+      },
+      {
+        "executedAt": "2026-07-04T00:37:02.508Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 88986 (raw), needs 3800000 (raw) — 3.8 USDC at 6 decimals."
+      },
+      {
+        "executedAt": "2026-07-04T00:37:05.089Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 88986 (raw), needs 3800000 (raw) — 3.8 USDC at 6 decimals."
+      }
+    ],
+    "createdAt": "2026-07-04T00:35:57.290Z",
+    "executedAt": null
+  },
+  {
+    "id": "aa53bfcf-cbb0-468b-b156-78be08099d31",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0xd4de2458b99D029EF7ca75F3087CAD28E17e20A2",
+    "amount": "3",
+    "token": "USDC",
+    "scheduledFor": "2026-07-04T00:38:23Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-04T00:38:23.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 88986 (raw), needs 3000000 (raw) — 3 USDC at 6 decimals.",
+    "history": [
+      {
+        "executedAt": "2026-07-04T00:39:00.420Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 88986 (raw), needs 3000000 (raw) — 3 USDC at 6 decimals."
+      },
+      {
+        "executedAt": "2026-07-04T00:39:00.477Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 88986 (raw), needs 3000000 (raw) — 3 USDC at 6 decimals."
+      },
+      {
+        "executedAt": "2026-07-04T00:39:01.462Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 88986 (raw), needs 3000000 (raw) — 3 USDC at 6 decimals."
+      }
+    ],
+    "createdAt": "2026-07-04T00:37:24.506Z",
+    "executedAt": null
+  },
+  {
+    "id": "9fa5931c-8764-4bba-b7cb-40cb98766a84",
+    "walletAddress": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "3",
+    "token": "USDC",
+    "scheduledFor": "2026-07-05T10:29:15Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-05T10:29:15.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 0.08898625 USDC, needs ~3.01 USDC (3 to send + 0.01 for gas). On Arc, gas is paid in USDC from the same balance, so keep a little extra for fees.",
+    "history": [
+      {
+        "executedAt": "2026-07-05T10:30:01.056Z",
+        "error": "Insufficient balance: wallet 0x15144Ace9C2E1D3E1d96e02e562AaFCdBC430C65 has 0.08898625 USDC, needs ~3.01 USDC (3 to send + 0.01 for gas). On Arc, gas is paid in USDC from the same balance, so keep a little extra for fees."
+      }
+    ],
+    "createdAt": "2026-07-05T10:28:16.446Z",
+    "executedAt": null
+  },
+  {
+    "id": "dbf08422-973d-4622-a1c5-6d37d9dd62b2",
+    "walletAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "senderAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "0.5",
+    "token": "USDC",
+    "scheduledFor": "2026-07-05T12:11:25Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-05T12:11:25.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "privy.walletsService.ethereum.sendTransaction is not a function",
+    "history": [
+      {
+        "executedAt": "2026-07-05T12:12:00.854Z",
+        "error": "privy.walletsService.ethereum.sendTransaction is not a function"
+      }
+    ],
+    "createdAt": "2026-07-05T12:09:27.277Z",
+    "executedAt": null
+  },
+  {
+    "id": "66d43380-c74d-4818-ac69-a1b8ed3da78a",
+    "walletAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "senderAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "0.5",
+    "token": "USDC",
+    "scheduledFor": "2026-07-05T12:13:36Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-05T12:13:36.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "privy.walletsService.ethereum.sendTransaction is not a function",
+    "history": [
+      {
+        "executedAt": "2026-07-05T12:14:00.433Z",
+        "error": "privy.walletsService.ethereum.sendTransaction is not a function"
+      }
+    ],
+    "createdAt": "2026-07-05T12:11:38.309Z",
+    "executedAt": null
+  },
+  {
+    "id": "900cdf92-5bf8-4b10-adf5-78e4015ff2c0",
+    "walletAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "senderAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "0.5",
+    "token": "USDC",
+    "scheduledFor": "2026-07-05T12:20:00Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-05T12:20:00.000Z",
+    "status": "failed",
+    "txHash": null,
+    "lastError": "Cannot read properties of undefined (reading 'wallets')",
+    "history": [
+      {
+        "executedAt": "2026-07-05T12:20:01.057Z",
+        "error": "Cannot read properties of undefined (reading 'wallets')"
+      }
+    ],
+    "createdAt": "2026-07-05T12:18:02.045Z",
+    "executedAt": null
+  },
+  {
+    "id": "72f2302c-0724-41e5-840e-4e0e74dc98ef",
+    "walletAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "senderAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x7148B5066ED037cED16C4b238d550736b94FFA09",
+    "amount": "0.3",
+    "token": "USDC",
+    "scheduledFor": "2026-07-05T12:37:08Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-05T12:37:08.000Z",
+    "status": "executed",
+    "txHash": "0x8bf5ad88886076266503fba9ca3d0bc72088ad84d4528cb164d44432efb07c3a",
+    "lastError": null,
+    "history": [
+      {
+        "executedAt": "2026-07-05T12:38:01.946Z",
+        "txHash": "0x8bf5ad88886076266503fba9ca3d0bc72088ad84d4528cb164d44432efb07c3a"
+      }
+    ],
+    "createdAt": "2026-07-05T12:35:09.840Z",
+    "executedAt": "2026-07-05T12:38:01.946Z"
+  },
+  {
+    "id": "f5896db3-5f7d-4fb2-947b-a32ae14a3f6e",
+    "walletAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "senderAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x66CAdaB3fCCe0343752A919c2929E8e3848Ff4e2",
+    "amount": "0.3",
+    "token": "USDC",
+    "scheduledFor": "2026-07-05T12:53:01Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-05T12:53:01.000Z",
+    "status": "executed",
+    "txHash": "0x7d8b585536d210f228ccc87740f3d009ea418b087aa8be6717125e5463f0dba3",
+    "lastError": null,
+    "history": [
+      {
+        "executedAt": "2026-07-05T12:55:01.816Z",
+        "txHash": "0x7d8b585536d210f228ccc87740f3d009ea418b087aa8be6717125e5463f0dba3"
+      }
+    ],
+    "createdAt": "2026-07-05T12:51:03.168Z",
+    "executedAt": "2026-07-05T12:55:01.816Z"
+  },
+  {
+    "id": "56940ae6-ba7d-4555-9114-82a3efd80d81",
+    "walletAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "senderAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x66CAdaB3fCCe0343752A919c2929E8e3848Ff4e2",
+    "amount": "5",
+    "token": "USDC",
+    "scheduledFor": "2026-07-05T13:48:23Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-05T13:48:23.000Z",
+    "status": "executed",
+    "txHash": "0xbf198b8770b6bf3b22e188f1da85714c73a1076a75d636a67512cfecaddb60ca",
+    "lastError": null,
+    "history": [
+      {
+        "executedAt": "2026-07-05T13:49:01.803Z",
+        "txHash": "0xbf198b8770b6bf3b22e188f1da85714c73a1076a75d636a67512cfecaddb60ca"
+      }
+    ],
+    "createdAt": "2026-07-05T13:46:24.956Z",
+    "executedAt": "2026-07-05T13:49:01.803Z"
+  },
+  {
+    "id": "f3f54f1f-e1bb-43d7-b417-7c086b0e5810",
+    "walletAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "senderAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x66CAdaB3fCCe0343752A919c2929E8e3848Ff4e2",
+    "amount": "5",
+    "token": "USDC",
+    "scheduledFor": "2026-07-05T14:43:29Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-05T14:43:29.000Z",
+    "status": "executed",
+    "txHash": "0x5ad5c4eaaf97065171f700e3b09c3287d0540d6931edd814bc7ca33f89cbec21",
+    "lastError": null,
+    "history": [
+      {
+        "executedAt": "2026-07-05T14:44:02.872Z",
+        "txHash": "0x5ad5c4eaaf97065171f700e3b09c3287d0540d6931edd814bc7ca33f89cbec21"
+      }
+    ],
+    "createdAt": "2026-07-05T14:41:30.962Z",
+    "executedAt": "2026-07-05T14:44:02.872Z"
+  },
+  {
+    "id": "86e2cb16-e92e-4318-ab19-ced1dfcf0427",
+    "walletAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "notifyAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "senderAddress": "0xd4de2458b99d029ef7ca75f3087cad28e17e20a2",
+    "recipient": "0x66CAdaB3fCCe0343752A919c2929E8e3848Ff4e2",
+    "amount": "3",
+    "token": "USDC",
+    "scheduledFor": "2026-07-09T20:09:14Z",
+    "recurrence": null,
+    "recurrenceDay": null,
+    "recurrenceTime": null,
+    "nextRun": "2026-07-09T20:09:14.000Z",
+    "status": "executed",
+    "txHash": "0x71e2ddac31e5526f6b9d7f5058549f17c2e3482d66fe2fc0e1fd092bf213cbc8",
+    "lastError": null,
+    "history": [
+      {
+        "executedAt": "2026-07-09T20:10:02.178Z",
+        "txHash": "0x71e2ddac31e5526f6b9d7f5058549f17c2e3482d66fe2fc0e1fd092bf213cbc8"
+      }
+    ],
+    "createdAt": "2026-07-09T20:07:16.476Z",
+    "executedAt": "2026-07-09T20:10:02.178Z"
+  }
+]

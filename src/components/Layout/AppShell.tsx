@@ -37,7 +37,7 @@ export function AppShell({
   return (
     <main className={cn('mx-auto w-full px-3 py-6 sm:px-4 xl:px-5 2xl:px-6', maxWidthClasses[maxWidth])}>
       <div className={cn(
-        'bg-slate-900/60 backdrop-blur-xl border border-cyan-500/20 rounded-3xl shadow-[0_8px_32px_rgba(6,182,212,0.1)]',
+        'glass-card',
         compact ? 'p-3.5 sm:p-4 xl:p-5' : 'p-6 md:p-8'
       )}>
         {title && (

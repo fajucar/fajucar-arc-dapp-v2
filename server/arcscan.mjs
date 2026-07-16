@@ -23,3 +23,9 @@ export function fetchTokenTransfers(address) {
 export function fetchAddressInfo(address) {
   return getJson(`${ARCSCAN_API}/addresses/${address}`)
 }
+
+// Dedicated counters endpoint — returns the REAL total transaction count for
+// the address, unlike /transactions which is paginated at 50 items/page.
+export function fetchAddressCounters(address) {
+  return getJson(`${ARCSCAN_API}/addresses/${address}/counters`)
+}

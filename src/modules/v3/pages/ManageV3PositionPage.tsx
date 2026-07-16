@@ -1,6 +1,6 @@
 /**
  * ManageV3PositionPage — Icarus-style layout
- * Collect fees, Increase/Decrease liquidity, range selector
+ * Collect fees, Add/Remove liquidity, range selector
  *
  * Layout: 2-column fixed-height on lg+, single-column scroll on mobile.
  * Header height assumed ~3.5rem (56px) — adjust calc() if your header differs.
@@ -10,18 +10,32 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, Link, useLocation } from 'react-router-dom'
 import { useAccount, useChainId, usePublicClient, useWaitForTransactionReceipt } from 'wagmi'
 import { useArcWriteContract } from '@/hooks/useArcWriteContract'
-import { parseUnits, formatUnits, maxUint256 } from 'viem'
+import { parseUnits, formatUnits, encodeFunctionData, type Abi } from 'viem'
 import { toast } from 'react-hot-toast'
 import { ArrowLeft, Loader2, Coins, Plus, Minus, AlertCircle, ExternalLink } from 'lucide-react'
 import { getV3Addresses, getV3ConfigError } from '../config'
-import { getSqrtRatioAtTick, getAmountsForLiquidity } from '../lib/liquidityMath'
-import { RangeChart, priceAtTick } from '../components/RangeChart'
+import {
+  makeToken,
+  buildPool,
+  fullRangeTicks as sdkFullRangeTicks,
+  tickSpacingFor,
+  positionAmounts,
+  partialLiquidity,
+  tickPriceLabel,
+} from '../lib/sdk'
+import { getArcTokenInfo } from '../lib/tokenInfo'
+import { RangeChart } from '../components/RangeChart'
+import { RemoveV3LiquidityModal } from '../components/RemoveV3LiquidityModal'
+import { AddV3LiquidityModal } from '../components/AddV3LiquidityModal'
 import { ensureAllowance } from '@/lib/allowance'
-import { formatNumber } from '@/lib/format'
+import { formatCurrencyAmount } from '@/lib/format'
 import { ARCDEX } from '@/config/arcDex'
+
+const MAX_UINT128 = 340282366920938463463374607431768211455n
 
 import NonfungiblePositionManagerAbi from '@/abis/v3/NonfungiblePositionManager.json'
 import UniswapV3PoolAbi from '@/abis/v3/UniswapV3Pool.json'
+import UniswapV3FactoryAbi from '@/abis/v3/UniswapV3Factory.json'
 
 const ERC20_ABI = [
   { name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] },
@@ -29,25 +43,9 @@ const ERC20_ABI = [
   { name: 'approve', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }], outputs: [{ name: '', type: 'bool' }] },
 ] as const
 
-const TICK_SPACING: Record<number, number> = { 500: 10, 3000: 60, 10000: 200 }
-const MIN_TICK = -887272
-const MAX_TICK = 887272
-const Q192 = 2n ** 192n
-
-/** sqrtPriceX96 → price (token1 per token0, e.g. EURC per USDC) */
-function priceFromSqrtX96(sqrtPriceX96: bigint): number {
-  const p = (sqrtPriceX96 * sqrtPriceX96 * 10n ** 18n) / Q192
-  return Number(p) / 1e18
-}
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 type TxState = 'idle' | 'loading' | 'pending' | 'success' | 'error'
-
-function fullRangeTicks(fee: number): { tickLower: number; tickUpper: number } {
-  const sp = TICK_SPACING[fee] ?? 60
-  const tickLower = Math.ceil(MIN_TICK / sp) * sp
-  const tickUpper = Math.floor(MAX_TICK / sp) * sp
-  return { tickLower, tickUpper }
-}
 
 // ── Shared compact card style ──────────────────────────────────────────────
 const CARD = 'rounded-2xl border border-slate-700/50 bg-slate-800/30 p-4'
@@ -79,39 +77,39 @@ export function ManageV3PositionPage() {
   } | null>(null)
   const [currentTick, setCurrentTick] = useState<number>(0)
   const [sqrtPriceX96, setSqrtPriceX96] = useState<bigint | null>(null)
+  const [poolLiquidity, setPoolLiquidity] = useState<bigint>(0n)
   const [balance0, setBalance0] = useState<string>('')
   const [balance1, setBalance1] = useState<string>('')
-  const [amount0, setAmount0] = useState('')
-  const [amount1, setAmount1] = useState('')
   const [rangeMode, setRangeMode] = useState<'full' | 'manual'>('full')
   const [manualTickLower, setManualTickLower] = useState('')
   const [manualTickUpper, setManualTickUpper] = useState('')
-  const [decreasePct, setDecreasePct] = useState<25 | 50 | 75 | 100 | null>(null)
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [removeModalOpen, setRemoveModalOpen] = useState(false)
   const [txState, setTxState] = useState<TxState>('idle')
 
   const tid = useMemo(() => (tokenId ? BigInt(tokenId) : 0n), [tokenId])
   const inRange = pos ? currentTick >= pos.tickLower && currentTick <= pos.tickUpper : false
-  const sym0 = addrs?.tokens.USDC.address.toLowerCase() === pos?.token0?.toLowerCase() ? 'USDC' : 'EURC'
-  const sym1 = addrs?.tokens.EURC.address.toLowerCase() === pos?.token1?.toLowerCase() ? 'EURC' : 'USDC'
-  const decimals0 = 6
-  const decimals1 = 6
+  // Whether the position's own range (not the increase-range selector below) is below/above the
+  // pool's current price — determines which side of "Add liquidity" can accept a deposit.
+  const positionPriceBelowRange = pos ? currentTick < pos.tickLower : false
+  const positionPriceAboveRange = pos ? currentTick > pos.tickUpper : false
+
+  const info0 = pos ? getArcTokenInfo(pos.token0) : null
+  const info1 = pos ? getArcTokenInfo(pos.token1) : null
+  const sym0 = info0?.symbol ?? '—'
+  const sym1 = info1?.symbol ?? '—'
+  const decimals0 = info0?.decimals ?? 18
+  const decimals1 = info1?.decimals ?? 18
 
   const loadPosition = useCallback(async () => {
     if (!publicClient || !addrs || tid === 0n) return
     try {
-      const [rawPosition, slot0] = await Promise.all([
-        publicClient.readContract({
-          address: addrs.v3PositionManager,
-          abi: NonfungiblePositionManagerAbi as unknown[],
-          functionName: 'positions',
-          args: [tid],
-        }),
-        publicClient.readContract({
-          address: addrs.v3Pool_USDC_EURC_500,
-          abi: UniswapV3PoolAbi as unknown[],
-          functionName: 'slot0',
-        }) as Promise<[bigint, number, number, number, number, number, boolean]>,
-      ])
+      const rawPosition = await publicClient.readContract({
+        address: addrs.v3PositionManager,
+        abi: NonfungiblePositionManagerAbi as unknown[],
+        functionName: 'positions',
+        args: [tid],
+      })
       const raw = rawPosition as readonly [unknown, unknown, `0x${string}`, `0x${string}`, number, number, number, bigint, unknown, unknown, bigint, bigint]
       const position = {
         token0: raw[2],
@@ -124,10 +122,34 @@ export function ManageV3PositionPage() {
         tokensOwed1: raw[11],
       }
       setPos(position)
-      setCurrentTick(slot0[1])
-      setSqrtPriceX96(slot0[0])
       setManualTickLower(String(position.tickLower))
       setManualTickUpper(String(position.tickUpper))
+
+      // Resolve the position's actual pool — must not assume a fixed USDC/EURC pool, since
+      // positions can exist on any pair the factory has deployed.
+      const poolAddr = (await publicClient.readContract({
+        address: addrs.v3Factory,
+        abi: UniswapV3FactoryAbi as never[],
+        functionName: 'getPool',
+        args: [position.token0, position.token1, position.fee],
+      })) as `0x${string}`
+      if (poolAddr && poolAddr.toLowerCase() !== ZERO_ADDRESS) {
+        const [slot0, liq] = await Promise.all([
+          publicClient.readContract({
+            address: poolAddr,
+            abi: UniswapV3PoolAbi as unknown[],
+            functionName: 'slot0',
+          }) as Promise<[bigint, number, number, number, number, number, boolean]>,
+          publicClient.readContract({
+            address: poolAddr,
+            abi: UniswapV3PoolAbi as unknown[],
+            functionName: 'liquidity',
+          }) as Promise<bigint>,
+        ])
+        setSqrtPriceX96(slot0[0])
+        setCurrentTick(slot0[1])
+        setPoolLiquidity(liq)
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to load position')
       setPos(null)
@@ -152,14 +174,15 @@ export function ManageV3PositionPage() {
       if (!cancelled) { setBalance0(formatUnits(b0, decimals0)); setBalance1(formatUnits(b1, decimals1)) }
     }).catch(() => { if (!cancelled) { setBalance0(''); setBalance1('') } })
     return () => { cancelled = true }
-  }, [address, publicClient, pos?.token0, pos?.token1])
+  }, [address, publicClient, pos?.token0, pos?.token1, decimals0, decimals1])
 
   useEffect(() => {
     if (isSuccess) { setTxState('success'); toast.success('Transaction confirmed'); loadPosition() }
   }, [isSuccess, loadPosition])
 
   const collectFees = async () => {
-    if (!address || !addrs || tid === 0n) return
+    if (!address) { toast.error('Connect your wallet first.'); return }
+    if (!addrs || tid === 0n) { toast.error('Network not ready. Reload the page.'); return }
     setTxState('loading')
     try {
       toast.loading('Collecting fees...', { id: 'collect' })
@@ -167,7 +190,7 @@ export function ManageV3PositionPage() {
         address: addrs.v3PositionManager,
         abi: NonfungiblePositionManagerAbi as unknown[],
         functionName: 'collect',
-        args: [{ tokenId: tid, recipient: address, amount0Max: maxUint256, amount1Max: maxUint256 }],
+        args: [{ tokenId: tid, recipient: address, amount0Max: MAX_UINT128, amount1Max: MAX_UINT128 }],
       })
       setTxState('pending')
       await publicClient!.waitForTransactionReceipt({ hash: h })
@@ -178,8 +201,12 @@ export function ManageV3PositionPage() {
     }
   }
 
-  const increaseLiquidity = async () => {
-    if (!address || !publicClient || !addrs || tid === 0n || !pos) return
+  // Takes amounts as arguments (from the modal) instead of reading page-level state — every exit
+  // path shows a toast, matching the same defensive pattern as removeLiquidity below.
+  const addLiquidity = async (amount0: string, amount1: string) => {
+    if (!address) { toast.error('Connect your wallet first.'); return }
+    if (!publicClient || !addrs) { toast.error('Network not ready. Reload the page.'); return }
+    if (tid === 0n || !pos) { toast.error('Position not loaded yet.'); return }
     const a0 = amount0 ? parseUnits(amount0, decimals0) : 0n
     const a1 = amount1 ? parseUnits(amount1, decimals1) : 0n
     if (a0 === 0n && a1 === 0n) { toast.error('Enter amounts'); return }
@@ -189,61 +216,94 @@ export function ManageV3PositionPage() {
     try {
       if (a0 > 0n) { toast.loading(`Approving ${sym0}...`, { id: 'ap0' }); await ensureAllowance(publicClient, writeOpts, pos.token0, address, addrs.v3PositionManager, a0); toast.dismiss('ap0') }
       if (a1 > 0n) { toast.loading(`Approving ${sym1}...`, { id: 'ap1' }); await ensureAllowance(publicClient, writeOpts, pos.token1, address, addrs.v3PositionManager, a1); toast.dismiss('ap1') }
-      toast.loading('Increasing liquidity...', { id: 'inc' })
+      toast.loading('Adding liquidity...', { id: 'inc' })
       const h = await writeContractAsync({
         address: addrs.v3PositionManager,
         abi: NonfungiblePositionManagerAbi as unknown[],
         functionName: 'increaseLiquidity',
-        args: [{ tokenId: tid, amount0Desired: a0, amount1Desired: a1, amount0Min: 0n, amount1Min: 0n, deadline: BigInt(Math.floor(Date.now() / 1000) + 600) }],
+        args: [{ tokenId: tid, amount0Desired: a0, amount1Desired: a1, amount0Min: 0n, amount1Min: 0n, deadline: BigInt(Math.floor(Date.now() / 1000) + 3600) }],
       })
       setTxState('pending')
       await publicClient.waitForTransactionReceipt({ hash: h })
-      toast.dismiss('inc'); toast.success('Liquidity increased')
-      setAmount0(''); setAmount1('')
+      toast.dismiss('inc'); toast.success('Liquidity added'); setAddModalOpen(false)
     } catch (e) {
       setTxState('error'); toast.dismiss()
       toast.error(e instanceof Error ? e.message : 'Failed')
     }
   }
 
-  const decreaseLiquidity = async () => {
-    if (!address || !publicClient || !addrs || tid === 0n || !pos || pos.liquidity === 0n || decreasePct == null) return
-    const liq = (pos.liquidity * BigInt(decreasePct)) / 100n
-    if (liq === 0n) return
+  // Remove liquidity — decreaseLiquidity + collect bundled into ONE atomic transaction via
+  // NonfungiblePositionManager.multicall(), instead of two sequential txs. That atomicity (not
+  // amount0Min/amount1Min, which were already 0) is what made "Remove" unreliable: if the second
+  // tx (collect) was ever rejected, missed, or failed to estimate gas, liquidity had already been
+  // burned with no tokens collected and no way to retry from the UI.
+  //
+  // amount0Min/amount1Min are hardcoded to 0 rather than derived from
+  // NonfungiblePositionManager.removeCallParameters()'s slippageTolerance: for a position that's
+  // already 100% single-sided (out of range), that function's slippage math only reaches a
+  // literal zero once the tolerance happens to push the counterfactual price across the range
+  // boundary — which depends on how far out of range the price already is, so no fixed
+  // percentage reliably gives "free slippage" for every position. Hardcoding 0n is exact.
+  //
+  // Takes `percent` as an argument (from the modal) instead of reading page-level state — every
+  // exit path shows a toast, so a guard condition failing can never look like the button "did
+  // nothing".
+  const removeLiquidity = async (percent: number) => {
+    if (!address) { toast.error('Connect your wallet first.'); return }
+    if (!publicClient || !addrs) { toast.error('Network not ready. Reload the page.'); return }
+    if (tid === 0n || !pos) { toast.error('Position not loaded yet.'); return }
+    if (pos.liquidity === 0n) { toast.error('This position has no liquidity left to remove.'); return }
     setTxState('loading')
     try {
-      toast.loading('Decreasing liquidity...', { id: 'dec' })
-      const h = await writeContractAsync({
-        address: addrs.v3PositionManager, abi: NonfungiblePositionManagerAbi as unknown[],
+      const liquidityToRemove = partialLiquidity(pos.liquidity, percent)
+      if (liquidityToRemove <= 0n) { toast.error('Computed liquidity to remove is zero.'); setTxState('idle'); return }
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600)
+      const decreaseData = encodeFunctionData({
+        abi: NonfungiblePositionManagerAbi as Abi,
         functionName: 'decreaseLiquidity',
-        args: [{ tokenId: tid, liquidity: liq, amount0Min: 0n, amount1Min: 0n, deadline: BigInt(Math.floor(Date.now() / 1000) + 600) }],
+        args: [{ tokenId: tid, liquidity: liquidityToRemove, amount0Min: 0n, amount1Min: 0n, deadline }],
       })
-      await publicClient.waitForTransactionReceipt({ hash: h })
-      toast.dismiss('dec'); toast.loading('Collecting tokens...', { id: 'col' })
-      await writeContractAsync({
-        address: addrs.v3PositionManager, abi: NonfungiblePositionManagerAbi as unknown[],
+      const collectData = encodeFunctionData({
+        abi: NonfungiblePositionManagerAbi as Abi,
         functionName: 'collect',
-        args: [{ tokenId: tid, recipient: address, amount0Max: maxUint256, amount1Max: maxUint256 }],
+        args: [{ tokenId: tid, recipient: address, amount0Max: MAX_UINT128, amount1Max: MAX_UINT128 }],
       })
-      toast.dismiss('col'); toast.success('Liquidity decreased'); setDecreasePct(null)
+      toast.loading('Removing liquidity...', { id: 'rm' })
+      const h = await writeContractAsync({
+        address: addrs.v3PositionManager,
+        abi: NonfungiblePositionManagerAbi as unknown[],
+        functionName: 'multicall',
+        args: [[decreaseData, collectData]],
+      })
+      setTxState('pending')
+      await publicClient.waitForTransactionReceipt({ hash: h })
+      toast.dismiss('rm'); toast.success('Liquidity removed'); setRemoveModalOpen(false)
     } catch (e) {
-      setTxState('error'); toast.dismiss()
-      toast.error(e instanceof Error ? e.message : 'Failed')
+      setTxState('error'); toast.dismiss('rm')
+      toast.error(e instanceof Error ? e.message : 'Failed to remove liquidity')
     }
   }
 
-  const price = sqrtPriceX96 != null ? priceFromSqrtX96(sqrtPriceX96) : 1
-  const computeAmount1From0 = (a0: string) => {
-    const v = parseFloat(a0); if (isNaN(v) || v <= 0) return ''; return (v * price).toFixed(4)
-  }
-  const computeAmount0From1 = (a1: string) => {
-    const v = parseFloat(a1); if (isNaN(v) || v <= 0 || price <= 0) return ''; return (v / price).toFixed(4)
-  }
+  const sdkToken0 = useMemo(() => {
+    if (!pos) return null
+    try { return makeToken(chainId ?? 0, pos.token0, decimals0, sym0) } catch { return null }
+  }, [chainId, pos, decimals0, sym0])
+  const sdkToken1 = useMemo(() => {
+    if (!pos) return null
+    try { return makeToken(chainId ?? 0, pos.token1, decimals1, sym1) } catch { return null }
+  }, [chainId, pos, decimals1, sym1])
 
-  const tickLower = rangeMode === 'full' && pos ? fullRangeTicks(pos.fee).tickLower : parseInt(manualTickLower, 10)
-  const tickUpper = rangeMode === 'full' && pos ? fullRangeTicks(pos.fee).tickUpper : parseInt(manualTickUpper, 10)
+  const pool = useMemo(() => {
+    if (!pos || !sdkToken0 || !sdkToken1 || sqrtPriceX96 == null || sqrtPriceX96 <= 0n) return null
+    try {
+      return buildPool(sdkToken0, sdkToken1, pos.fee, sqrtPriceX96, poolLiquidity, currentTick)
+    } catch { return null }
+  }, [pos, sdkToken0, sdkToken1, sqrtPriceX96, poolLiquidity, currentTick])
+
+  const tickLower = rangeMode === 'full' && pos ? sdkFullRangeTicks(pos.fee).tickLower : parseInt(manualTickLower, 10)
+  const tickUpper = rangeMode === 'full' && pos ? sdkFullRangeTicks(pos.fee).tickUpper : parseInt(manualTickUpper, 10)
   const rangeValid = !isNaN(tickLower) && !isNaN(tickUpper) && tickLower < tickUpper
-  const sp = pos ? (TICK_SPACING[pos.fee] ?? 60) : 10
+  const sp = pos ? tickSpacingFor(pos.fee) : 10
   const manualAligned = rangeMode === 'manual' ? (tickLower % sp === 0 && tickUpper % sp === 0) : true
 
   const busy = txState === 'loading' || txState === 'pending' || isPending || isConfirming
@@ -290,13 +350,16 @@ export function ManageV3PositionPage() {
     )
   }
 
-  const { amount0: posAmount0, amount1: posAmount1 } = sqrtPriceX96 != null
-    ? getAmountsForLiquidity(sqrtPriceX96, getSqrtRatioAtTick(pos.tickLower), getSqrtRatioAtTick(pos.tickUpper), pos.liquidity)
-    : { amount0: 0n, amount1: 0n }
+  const { amount0Exact: posAmount0Exact, amount1Exact: posAmount1Exact } = pool
+    ? positionAmounts(pool, pos.tickLower, pos.tickUpper, pos.liquidity)
+    : { amount0Exact: '0', amount1Exact: '0' }
 
-  const priceLow  = priceAtTick(Math.min(pos.tickLower, pos.tickUpper))
-  const priceHigh = priceAtTick(Math.max(pos.tickLower, pos.tickUpper))
-  const curPrice  = sqrtPriceX96 != null ? priceFromSqrtX96(sqrtPriceX96) : priceAtTick(currentTick)
+  // A position minted with the full tick range has astronomically small/large boundary prices
+  // (1.0001^±887272) — show 0/∞ like Uniswap's own UI instead of a 40-digit number.
+  const posIsFullRange = sdkFullRangeTicks(pos.fee).tickLower === pos.tickLower && sdkFullRangeTicks(pos.fee).tickUpper === pos.tickUpper
+  const priceLowLabel = posIsFullRange ? '0' : sdkToken0 && sdkToken1 ? tickPriceLabel(sdkToken0, sdkToken1, Math.min(pos.tickLower, pos.tickUpper)) : '0'
+  const priceHighLabel = posIsFullRange ? '∞' : sdkToken0 && sdkToken1 ? tickPriceLabel(sdkToken0, sdkToken1, Math.max(pos.tickLower, pos.tickUpper)) : '0'
+  const curPriceLabel = pool ? pool.token0Price.toSignificant(6) : (sdkToken0 && sdkToken1 ? tickPriceLabel(sdkToken0, sdkToken1, currentTick) : '0')
 
   // ── Main layout ────────────────────────────────────────────────────────────
   // Desktop (lg+): fixed-height 2-column layout, each column scrolls independently.
@@ -321,7 +384,7 @@ export function ManageV3PositionPage() {
         lg:flex-1 lg:min-h-0 lg:overflow-hidden
       ">
 
-        {/* ── LEFT column: Manage · Select range · Amount · Decrease ── */}
+        {/* ── LEFT column: Manage · Select range · Amount ── */}
         <div className="space-y-3 lg:overflow-y-auto lg:min-h-0 lg:pr-1 pb-2">
 
           {/* Manage position ───────────────────────────────────────── */}
@@ -336,7 +399,7 @@ export function ManageV3PositionPage() {
 
             <p className="text-slate-400 text-xs mb-0.5">Position #{tokenId}</p>
             <p className="text-slate-300 text-xs font-medium mb-2.5">
-              {priceLow.toFixed(4)} ⇌ {priceHigh.toFixed(4)} {sym1}
+              {priceLowLabel} ⇌ {priceHighLabel} {sym1}
             </p>
 
             {/* APR / Staked / Deposited — 3 columns, compact */}
@@ -352,18 +415,18 @@ export function ManageV3PositionPage() {
               <div>
                 <span className="text-slate-500 text-xs block">Deposited</span>
                 <span className="text-slate-200 text-xs font-medium">
-                  {formatNumber(formatUnits(posAmount0, decimals0), 2)} {sym0}
+                  {formatCurrencyAmount(posAmount0Exact, sym0)} {sym0}
                   {' + '}
-                  {formatNumber(formatUnits(posAmount1, decimals1), 2)} {sym1}
+                  {formatCurrencyAmount(posAmount1Exact, sym1)} {sym1}
                 </span>
               </div>
             </div>
 
             {(pos.tokensOwed0 > 0n || pos.tokensOwed1 > 0n) && (
               <p className="text-xs text-amber-400 mb-2">
-                Rewards: {formatNumber(formatUnits(pos.tokensOwed0, decimals0), 4)} {sym0}
+                Rewards: {formatCurrencyAmount(formatUnits(pos.tokensOwed0, decimals0), sym0)} {sym0}
                 {' / '}
-                {formatNumber(formatUnits(pos.tokensOwed1, decimals1), 4)} {sym1}
+                {formatCurrencyAmount(formatUnits(pos.tokensOwed1, decimals1), sym1)} {sym1}
               </p>
             )}
 
@@ -379,17 +442,17 @@ export function ManageV3PositionPage() {
                 Claim reward
               </button>
               <button
-                onClick={() => setDecreasePct(null)}
+                onClick={() => setAddModalOpen(true)}
                 className="inline-flex items-center gap-1.5 px-3 py-[7px] rounded-xl text-xs font-medium border border-cyan-500/50 bg-cyan-500/10 text-cyan-400 hover:bg-amber-500/20 transition-colors"
               >
-                <Plus className="h-3.5 w-3.5" /> Increase
+                <Plus className="h-3.5 w-3.5" /> Add Liquidity
               </button>
               {pos.liquidity > 0n && (
                 <button
-                  onClick={() => document.getElementById('decrease')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                  onClick={() => setRemoveModalOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-[7px] rounded-xl text-xs font-medium border border-slate-600 bg-slate-800/60 text-slate-200 hover:bg-slate-700/60 transition-colors"
                 >
-                  <Minus className="h-3.5 w-3.5" /> Decrease
+                  <Minus className="h-3.5 w-3.5" /> Remove Liquidity
                 </button>
               )}
             </div>
@@ -399,7 +462,7 @@ export function ManageV3PositionPage() {
           <div className={CARD}>
             <h3 className="text-xs font-semibold text-white mb-1.5">Select range</h3>
             <p className="text-xs text-slate-400 mb-2.5">
-              Current price: {curPrice.toFixed(4)} {sym1} per {sym0}
+              Current price: {curPriceLabel} {sym1} per {sym0}
             </p>
 
             {!inRange && (
@@ -453,75 +516,6 @@ export function ManageV3PositionPage() {
             )}
           </div>
 
-          {/* Amount (Increase liquidity) ────────────────────────────── */}
-          <div className={CARD}>
-            <h3 className="text-xs font-semibold text-white mb-2.5">Amount</h3>
-            <div className="space-y-2.5">
-              {/* Token 0 input */}
-              <div className="rounded-xl bg-slate-900/60 border border-slate-700/50 px-3 py-2.5">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-slate-400">{sym0}</span>
-                  <span className="text-xs text-slate-500">Balance {formatNumber(balance0, 4)}</span>
-                </div>
-                <input
-                  type="text" inputMode="decimal"
-                  value={amount0}
-                  onChange={(e) => { const v = e.target.value.replace(/,/g, '.'); setAmount0(v); if (v) setAmount1(computeAmount1From0(v)) }}
-                  placeholder="0"
-                  className="w-full bg-transparent text-base font-semibold text-white focus:outline-none"
-                />
-              </div>
-              {/* Token 1 input */}
-              <div className="rounded-xl bg-slate-900/60 border border-slate-700/50 px-3 py-2.5">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-slate-400">{sym1}</span>
-                  <span className="text-xs text-slate-500">Balance {formatNumber(balance1, 4)}</span>
-                </div>
-                <input
-                  type="text" inputMode="decimal"
-                  value={amount1}
-                  onChange={(e) => { const v = e.target.value.replace(/,/g, '.'); setAmount1(v); if (v) setAmount0(computeAmount0From1(v)) }}
-                  placeholder="0"
-                  className="w-full bg-transparent text-base font-semibold text-white focus:outline-none"
-                />
-              </div>
-              <button
-                onClick={increaseLiquidity}
-                disabled={busy || (!amount0 && !amount1)}
-                className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
-              >
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Deposit
-              </button>
-            </div>
-          </div>
-
-          {/* Decrease liquidity ─────────────────────────────────────── */}
-          {pos.liquidity > 0n && (
-            <div id="decrease" className={`${CARD} scroll-mt-4`}>
-              <h3 className="text-xs font-semibold text-white mb-1.5">Decrease liquidity</h3>
-              <p className="text-xs text-slate-400 mb-2">Select how much to remove:</p>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {([25, 50, 75, 100] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setDecreasePct(decreasePct === p ? null : p)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${decreasePct === p ? 'bg-red-500/30 text-red-400 border-2 border-red-500/60' : 'bg-slate-800/60 text-slate-400 border border-slate-600 hover:bg-slate-700/60'}`}
-                  >
-                    {p}%
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={decreaseLiquidity}
-                disabled={busy || decreasePct == null}
-                className="w-full py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-semibold border border-red-500/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
-              >
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Minus className="h-4 w-4" />}
-                {decreasePct != null ? `Decrease ${decreasePct}%` : 'Select % above'}
-              </button>
-            </div>
-          )}
         </div>
 
         {/* ── RIGHT column: Visualize range · Statistics ── */}
@@ -537,6 +531,9 @@ export function ManageV3PositionPage() {
               symbol1={sym1}
               inRange={inRange}
               label="Visualize range"
+              minPriceLabel={priceLowLabel}
+              maxPriceLabel={priceHighLabel}
+              currentPriceLabel={curPriceLabel}
             />
           </div>
 
@@ -554,19 +551,19 @@ export function ManageV3PositionPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">{sym0}</span>
-                <span className="text-slate-200 font-medium">{formatNumber(formatUnits(posAmount0, decimals0), 4)}</span>
+                <span className="text-slate-200 font-medium">{formatCurrencyAmount(posAmount0Exact, sym0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">{sym1}</span>
-                <span className="text-slate-200 font-medium">{formatNumber(formatUnits(posAmount1, decimals1), 4)}</span>
+                <span className="text-slate-200 font-medium">{formatCurrencyAmount(posAmount1Exact, sym1)}</span>
               </div>
               <div className="flex justify-between pt-1.5 border-t border-slate-700/50">
                 <span className="text-slate-400">Fees ({sym0})</span>
-                <span className="text-slate-200">{formatNumber(formatUnits(pos.tokensOwed0, decimals0), 4)}</span>
+                <span className="text-slate-200">{formatCurrencyAmount(formatUnits(pos.tokensOwed0, decimals0), sym0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Fees ({sym1})</span>
-                <span className="text-slate-200">{formatNumber(formatUnits(pos.tokensOwed1, decimals1), 4)}</span>
+                <span className="text-slate-200">{formatCurrencyAmount(formatUnits(pos.tokensOwed1, decimals1), sym1)}</span>
               </div>
               <div className="pt-1">
                 <a
@@ -583,6 +580,37 @@ export function ManageV3PositionPage() {
         </div>
 
       </div>
+
+      <AddV3LiquidityModal
+        isOpen={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        pool={pool}
+        tickLower={pos.tickLower}
+        tickUpper={pos.tickUpper}
+        decimals0={decimals0}
+        decimals1={decimals1}
+        sym0={sym0}
+        sym1={sym1}
+        balance0={balance0}
+        balance1={balance1}
+        positionPriceBelowRange={positionPriceBelowRange}
+        positionPriceAboveRange={positionPriceAboveRange}
+        busy={busy}
+        onConfirm={addLiquidity}
+      />
+
+      <RemoveV3LiquidityModal
+        isOpen={removeModalOpen}
+        onClose={() => setRemoveModalOpen(false)}
+        pool={pool}
+        tickLower={pos.tickLower}
+        tickUpper={pos.tickUpper}
+        liquidity={pos.liquidity}
+        sym0={sym0}
+        sym1={sym1}
+        busy={busy}
+        onConfirm={removeLiquidity}
+      />
     </div>
   )
 }

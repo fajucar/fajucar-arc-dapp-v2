@@ -7,6 +7,8 @@ import { NetworkBanner } from '@/components/NetworkBanner'
 import { NetworkSwitcher } from '@/components/Web3/NetworkSwitcher'
 import { WalletModal } from '@/components/Web3/WalletModal'
 import { useWalletModal } from '@/contexts/WalletModalContext'
+import { BottomNav } from '@/components/BottomNav'
+import { useTransactionNotifications } from '@/hooks/useTransactionNotifications'
 
 interface LayoutProps {
   children: ReactNode
@@ -18,16 +20,22 @@ function LayoutContent({ children }: LayoutProps) {
   const chainId = useChainId()
   const isWrongNetwork = isConnected && chainId != null && chainId !== ARC_TESTNET.chainIdDec
 
+  // Mounted once here (Layout wraps every route) so the SSE connection for
+  // scheduled-payment notifications survives navigation instead of
+  // reconnecting on every page change.
+  useTransactionNotifications()
+
   return (
-    <div className="min-h-screen flex flex-col text-white relative" style={{ background: 'linear-gradient(135deg, #1a0a3c 0%, #3d1464 30%, #6b1d5a 60%, #9b2648 85%, #c23a4a 100%)', backgroundAttachment: 'fixed' }}>
+    <div className="min-h-screen flex flex-col text-white relative">
       <Header />
       {isWrongNetwork && (
         <div className="sticky top-[65px] z-40 px-4 py-2 max-w-6xl mx-auto w-full">
           <NetworkBanner currentChainId={chainId} />
         </div>
       )}
-      <main className="flex-1">{children}</main>
+      <main className="main-content flex-1">{children}</main>
       <Footer />
+      <BottomNav />
       <NetworkSwitcher />
       <WalletModal isOpen={isOpen} onClose={closeModal} />
     </div>

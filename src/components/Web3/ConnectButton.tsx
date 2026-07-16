@@ -145,7 +145,7 @@ export function ConnectButton() {
       if (!msg.toLowerCase().includes('already')) {
         // "Connector not connected" = Privy tentou usar wagmi sem conector — recarregar resolve
         const displayMsg = /connector.*not.*connected|not.*connected/i.test(msg)
-          ? 'Erro ao criar carteira. Recarregue a página e tente novamente.'
+          ? 'Error creating wallet. Reload the page and try again.'
           : msg
         setWalletError(displayMsg)
         toast.error(displayMsg)
@@ -162,7 +162,7 @@ export function ConnectButton() {
       if (privyAuthenticated) await privyLogout()
       if (wagmiConnected) await disconnectAsync()
     } catch { /* noop */ }
-    toast.success('Desconectado')
+    toast.success('Disconnected')
     window.location.reload()
   }
 
@@ -194,20 +194,20 @@ export function ConnectButton() {
           className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-slate-800/60 px-3 py-2 backdrop-blur-xl"
         >
           <span className="text-xs text-red-400 max-w-[160px] truncate">
-            {walletError ?? 'Erro ao criar carteira'}
+            {walletError ?? 'Error creating wallet'}
           </span>
           <button
-            onClick={() => /recarregue/i.test(walletError ?? '') ? window.location.reload() : handleCreateWallet()}
+            onClick={() => /reload/i.test(walletError ?? '') ? window.location.reload() : handleCreateWallet()}
             disabled={isCreatingWallet}
             className="text-xs text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors shrink-0"
           >
-            {isCreatingWallet ? '…' : /recarregue/i.test(walletError ?? '') ? 'Recarregar' : 'Tentar novamente'}
+            {isCreatingWallet ? '…' : /reload/i.test(walletError ?? '') ? 'Reload' : 'Try again'}
           </button>
           <button
             onClick={privyLogout}
             className="text-xs text-slate-500 hover:text-red-400 underline underline-offset-2 transition-colors shrink-0"
           >
-            Sair
+            Sign out
           </button>
         </motion.div>
       )
@@ -220,7 +220,7 @@ export function ConnectButton() {
       >
         <Loader2 className="h-4 w-4 animate-spin text-purple-400 shrink-0" />
         <span className="text-sm text-slate-300">
-          {isCreatingWallet ? 'Criando carteira…' : 'Configurando carteira…'}
+          {isCreatingWallet ? 'Creating wallet…' : 'Setting up wallet…'}
         </span>
         {!isCreatingWallet && (
           <button
@@ -297,7 +297,7 @@ export function ConnectButton() {
     const wallet = privyWallets[0]
     if (wallet?.address) return formatAddress(wallet.address as `0x${string}`)
     if (effectiveAddress) return formatAddress(effectiveAddress)
-    return 'Conectado'
+    return 'Connected'
   }
 
   // Prioridade: identidade social do Privy > ENS > endereço.
@@ -317,7 +317,7 @@ export function ConnectButton() {
     hasSocialAccount
       ? getDisplayName()
       : (ensName && typeof ensName === 'string' ? ensName : null) ??
-        (effectiveAddress ? formatAddress(effectiveAddress) : 'Conectado')
+        (effectiveAddress ? formatAddress(effectiveAddress) : 'Connected')
 
   const socialKind = getSocialKind()
 

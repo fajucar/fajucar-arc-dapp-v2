@@ -19,19 +19,19 @@ function mapPrivyError(err: unknown): string {
     return ''
   }
   if (code === 'user_exited_auth_flow' || /user.*exit|user.*cancel|user.*clos|user.*denied|rejected/i.test(raw)) {
-    return 'Login cancelado. Tente novamente.'
+    return 'Login cancelled. Try again.'
   }
   if (/popup.*block|block.*popup/i.test(raw)) {
-    return 'Popup bloqueado pelo navegador. Permita popups para este site e tente novamente.'
+    return 'Popup blocked by the browser. Allow popups for this site and try again.'
   }
   if (/telegram.*bot|bot.*not.*config|telegram.*not.*set|widget.*fail/i.test(raw)) {
-    return 'Telegram requer configuração adicional no dashboard Privy. Use Google, Twitter ou Discord.'
+    return 'Telegram requires additional configuration in the Privy dashboard. Use Google, Twitter or Discord.'
   }
   if (/network|timeout|timed.?out/i.test(raw)) {
-    return 'Tempo esgotado. Verifique sua conexão e tente novamente.'
+    return 'Time out. Check your connection and try again.'
   }
   if (/not.*support|unsupport/i.test(raw)) {
-    return 'Método não suportado. Use outro provider.'
+    return 'Method not supported. Use another provider.'
   }
   return raw.length > 120 ? raw.slice(0, 120) + '…' : raw
 }
@@ -111,8 +111,8 @@ export function SocialLoginSection({ onSuccess }: SocialLoginSectionProps) {
       setActiveProvider(null)
       setError(
         isTelegram
-          ? 'Telegram expirou. Verifique se o bot está configurado no dashboard Privy ou use outro método.'
-          : 'Tempo esgotado. Tente novamente ou use outro método de login.'
+          ? 'Telegram timed out. Check if the bot is configured in the Privy dashboard or use another method.'
+          : 'Time out. Try again or use another login method.'
       )
     }, timeoutMs)
     return () => {
@@ -207,7 +207,7 @@ export function SocialLoginSection({ onSuccess }: SocialLoginSectionProps) {
                   Continue with {provider.label}
                 </span>
                 <span className="shrink-0 rounded-full bg-cyan-500/20 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-semibold text-cyan-400 uppercase tracking-wide">
-                  Em breve
+                  Coming soon
                 </span>
               </button>
             )
@@ -233,7 +233,7 @@ export function SocialLoginSection({ onSuccess }: SocialLoginSectionProps) {
                   : provider.icon}
               </span>
               <span className="text-sm font-medium text-slate-200">
-                {!privyReady ? 'Carregando...' : isLoading ? 'Connecting...' : `Continue with ${provider.label}`}
+                {!privyReady ? 'Loading...' : isLoading ? 'Connecting...' : `Continue with ${provider.label}`}
               </span>
             </button>
           )

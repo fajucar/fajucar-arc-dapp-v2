@@ -7,6 +7,8 @@ import { initiateDeveloperControlledWalletsClient } from '@circle-fin/developer-
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { randomUUID } from 'node:crypto'
+import { dbRead, dbWrite } from './walletsDb.mjs'
 
 // ── Load .env ourselves so we don't depend on index.mjs load order ───────────
 const __dir = dirname(fileURLToPath(import.meta.url))
@@ -43,6 +45,76 @@ export function getCircleClient() {
 
   _circleClient = initiateDeveloperControlledWalletsClient({ apiKey, entitySecret })
   return _circleClient
+}
+
+/**
+ * Get (or lazily create) a Circle Developer Controlled Wallet for a stable
+ * user identity — a Privy user id (e.g. "did:privy:..." or "google:...")
+ * or any other stable key, NOT an on-chain address. Circle generates its
+ * own address; you can't retroactively attach Circle custody to an
+ * already-existing externally-signed address (e.g. a Privy embedded
+ * wallet).
+ *
+ * Moved here (from index.mjs) so any server module — the /api/wallet/*
+ * routes, the payment scheduler's lazy-provisioning path in agent.mjs —
+ * can reuse it without duplicating the createWallets() call.
+ */
+export async function getOrCreateWallet(userId, email = '') {
+  const db = dbRead()
+  if (db[userId]) {
+    if (email && !db[userId].email) { db[userId].email = email; dbWrite(db) }
+    return db[userId]
+  }
+
+  const walletSetId = getEnv('CIRCLE_WALLET_SET_ID')
+  if (!walletSetId) throw new Error('Circle env var missing: CIRCLE_WALLET_SET_ID')
+
+  console.log('[Circle] Creating wallet for', userId.slice(0, 12) + '...')
+  const response = await getCircleClient().createWallets({
+    idempotencyKey: randomUUID(),
+    blockchains:    ['ARC-TESTNET'],
+    count:          1,
+    walletSetId,
+  })
+
+  const wallet = response.data?.wallets?.[0]
+  if (!wallet?.address) throw new Error('Circle did not return an address')
+
+  db[userId] = {
+    address:   wallet.address,
+    walletId:  wallet.id,
+    email:     email || undefined,
+    createdAt: new Date().toISOString(),
+  }
+  dbWrite(db)
+  console.log('[Circle] ✅ Wallet created:', wallet.address)
+  return db[userId]
+}
+
+/**
+ * Read a wallet's USDC balance (as a Number) from Circle.
+ * Returns null if the balance can't be determined (network/API error) so
+ * callers can degrade gracefully instead of blocking. Never throws.
+ *
+ * Additive helper used by the schedule-time funding check in agent.mjs —
+ * does not touch the scheduler's execution path.
+ */
+export async function getWalletUsdcBalance(walletId) {
+  if (!walletId) return null
+  try {
+    const res = await getCircleClient().listWalletBalance({ id: walletId })
+    const balances = res?.data?.tokenBalances ?? []
+    const usdc = balances.find(b => {
+      const sym = (b?.token?.symbol ?? '').toUpperCase()
+      return sym === 'USDC' || sym === 'USD'
+    })
+    if (!usdc) return 0
+    const amount = Number(usdc.amount)
+    return Number.isFinite(amount) ? amount : null
+  } catch (err) {
+    console.warn('[Circle] getWalletUsdcBalance error:', err?.message ?? err)
+    return null
+  }
 }
 
 // Keep backward-compat export (resolves lazily)
@@ -130,7 +202,7 @@ export async function executeContractCall({ walletId, contractAddress, functionS
     console.log('walletId:', walletId)
 
     try {
-      const balance = await circleClient.listWalletBalance({ id: walletId })
+      const balance = await circleClient.getWalletTokenBalance({ id: walletId })
       console.log('Wallet balance:', JSON.stringify(balance.data, null, 2))
     } catch (balErr) {
       console.log('Wallet balance fetch error:', balErr.message)
@@ -180,6 +252,3 @@ export async function executeContractCall({ walletId, contractAddress, functionS
   console.log(`[Circle] polling tx ${transactionId}...`)
   return waitForTransaction(transactionId)
 }
-
-// Import randomUUID for idempotency keys
-import { randomUUID } from 'node:crypto'

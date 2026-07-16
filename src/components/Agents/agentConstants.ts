@@ -14,18 +14,18 @@ export const PERSONALITY_OPTIONS: Array<{
   label: string
   desc: string
 }> = [
-  { id: 'explorer', emoji: '🗺️', label: 'Explorer', desc: 'Descobre novos tokens e oportunidades' },
-  { id: 'trader',   emoji: '📈', label: 'Trader',   desc: 'Focado em swaps e alertas de preço' },
-  { id: 'builder',  emoji: '🏗️', label: 'Builder',  desc: 'Minta NFTs e interage com contratos' },
-  { id: 'social',   emoji: '🌐', label: 'Social',   desc: 'Envie pagamentos via redes sociais' },
+  { id: 'explorer', emoji: '🗺️', label: 'Explorer', desc: 'Discovers new tokens and opportunities' },
+  { id: 'trader',   emoji: '📈', label: 'Trader',   desc: 'Focused on swaps and price alerts' },
+  { id: 'builder',  emoji: '🏗️', label: 'Builder',  desc: 'Mints NFTs and interacts with contracts' },
+  { id: 'social',   emoji: '🌐', label: 'Social',   desc: 'Sends payments via social handles' },
 ]
 
 export const CAPABILITIES = [
-  { emoji: '💸', title: 'FajuPay',        desc: 'Envie USDC pelo handle social',      active: true  },
-  { emoji: '📊', title: 'Portfolio',       desc: 'Resumo de saldo e posições',          active: false },
-  { emoji: '🔔', title: 'Alertas',         desc: 'Notificações quando receber USDC',    active: false },
-  { emoji: '🔄', title: 'Swap Automático', desc: 'Execute swaps por condição de preço', active: false },
-  { emoji: '🌉', title: 'Bridge',          desc: 'Mova USDC entre chains',              active: false },
+  { emoji: '💸', title: 'FajuPay',        desc: 'Send USDC via social handle',     active: true  },
+  { emoji: '📊', title: 'Portfolio',       desc: 'Balance and positions summary',   active: false },
+  { emoji: '🔔', title: 'Alerts',          desc: 'Notifications when you receive USDC', active: false },
+  { emoji: '🔄', title: 'Auto Swap',       desc: 'Execute swaps on a price condition', active: false },
+  { emoji: '🌉', title: 'Bridge',          desc: 'Move USDC between chains',        active: false },
 ]
 
 export function loadProfile(address: string): AgentLocalProfile | null {
@@ -48,16 +48,16 @@ export function saveProfile(address: string, profile: AgentLocalProfile) {
 }
 
 export function defaultAgentName(address: string) {
-  return `Agente #${address.slice(-4).toUpperCase()}`
+  return `Agent #${address.slice(-4).toUpperCase()}`
 }
 
 export function resizeImageToDataUrl(file: File, maxSize = 300, quality = 0.8): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onerror = () => reject(new Error('Erro ao ler arquivo'))
+    reader.onerror = () => reject(new Error('Error reading file'))
     reader.onload = (readerEvent) => {
       const dataUrl = readerEvent.target?.result as string
-      if (!dataUrl) { reject(new Error('Arquivo vazio')); return }
+      if (!dataUrl) { reject(new Error('Empty file')); return }
 
       const img = new Image()
       // Se a imagem não carregar no canvas, usa o data URL direto

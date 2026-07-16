@@ -94,6 +94,8 @@
     "userCancelled": "User cancelled the action.",
     "addLiquidityRedirect": "To add liquidity, go to the Pools tab and choose the desired pair.",
     "sendSuccess": "{{amount}} USDC sent to {{address}}",
+    "scheduledPaymentExecuted": "Scheduled payment executed! {{amount}} {{token}} sent to {{address}}.",
+    "scheduledPaymentFailed": "Scheduled payment failed: {{amount}} {{token}} to {{address}} — {{error}}",
     "swapSuccess": "Swap of {{amount}} {{tokenIn}} → {{tokenOut}} executed",
     "mintSuccess": "NFT \"{{name}}\" minted successfully!",
     "faucetSuccess": "{{token}} tokens received from faucet!",

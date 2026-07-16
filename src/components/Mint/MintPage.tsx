@@ -120,7 +120,7 @@ function MintPage() {
       setNfts(items);
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao carregar NFTs");
+      toast.error("Error loading NFTs");
     } finally {
       setLoading(false);
     }
@@ -143,14 +143,14 @@ function MintPage() {
         disabled={loading}
         className="mb-6 px-4 py-2 rounded-lg bg-cyan-500/30 hover:bg-amber-500/40 disabled:opacity-50"
       >
-        {loading ? "Carregando..." : "Refresh"}
+        {loading ? "Loading..." : "Refresh"}
       </button>
 
       {!loading && nfts.length === 0 && (
         <div className="mt-10 text-center text-white/70">
-          <p className="text-lg font-semibold">Nenhum NFT encontrado</p>
+          <p className="text-lg font-semibold">No NFTs found</p>
           <p className="text-sm mt-2">
-            NFTs são buscados diretamente no contrato, sem depender de logs.
+            NFTs are fetched directly from the contract, without relying on logs.
           </p>
         </div>
       )}

@@ -10,13 +10,15 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import agentRouter from './agent.mjs'
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { randomUUID } from 'node:crypto'
 import { initiateDeveloperControlledWalletsClient } from '@circle-fin/developer-controlled-wallets'
-import { executeContractCall, getCircleClient } from './circle.mjs'
-import { fetchAddressTransactions, fetchTokenTransfers, fetchAddressInfo } from './arcscan.mjs'
+import { executeContractCall, getCircleClient, getOrCreateWallet } from './circle.mjs'
+import { fetchAddressTransactions, fetchTokenTransfers, fetchAddressInfo, fetchAddressCounters } from './arcscan.mjs'
+import { dbRead, dbWrite, findUserByAddress, findUserByEmail, resolveWalletId } from './walletsDb.mjs'
+import { startPaymentScheduler } from './scheduler.mjs'
+import { notificationBus } from './notifications.mjs'
 
 const __dir = dirname(fileURLToPath(import.meta.url))
 const ROOT  = resolve(__dir, '..')
@@ -71,71 +73,14 @@ const circle = initiateDeveloperControlledWalletsClient({
   entitySecret: CIRCLE_ENTITY_SECRET,
 })
 
-// ── Simple JSON DB ────────────────────────────────────────────────────────────
-const DB_FILE = resolve(__dir, 'wallets-db.json')
+// ── Simple JSON DB (wallets) ────────────────────────────────────────────────
+// dbRead/dbWrite/findUserByAddress/findUserByEmail/resolveWalletId now live
+// in walletsDb.mjs so the payment scheduler and agent.mjs can resolve a
+// Circle walletId without duplicating this logic.
 
-function dbRead() {
-  if (!existsSync(DB_FILE)) return {}
-  return JSON.parse(readFileSync(DB_FILE, 'utf-8'))
-}
-
-function dbWrite(data) {
-  writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8')
-}
-
-function findUserByAddress(address) {
-  const db = dbRead()
-  return Object.values(db).find(
-    (u) => u.address?.toLowerCase() === address?.toLowerCase()
-  ) ?? null
-}
-
-function findWalletByEmail(email) {
-  const normalized = (email ?? '').toLowerCase().trim()
-  if (!normalized) return null
-  const db = dbRead()
-  for (const [userId, entry] of Object.entries(db)) {
-    if (entry.email?.toLowerCase() === normalized) return { userId, ...entry }
-  }
-  return null
-}
-
-function resolveWalletId(_req, fromAddress) {
-  if (fromAddress) {
-    const entry = findUserByAddress(fromAddress)
-    if (entry?.walletId) return entry.walletId
-  }
-  return null
-}
-
-async function getOrCreateWallet(userId, email = '') {
-  const db = dbRead()
-  if (db[userId]) {
-    if (email && !db[userId].email) { db[userId].email = email; dbWrite(db) }
-    return db[userId]
-  }
-
-  console.log('[Circle] Criando wallet para', userId.slice(0, 12) + '...')
-  const response = await circle.createWallets({
-    idempotencyKey: randomUUID(),
-    blockchains: ['ARC-TESTNET'],
-    count: 1,
-    walletSetId: CIRCLE_WALLET_SET_ID,
-  })
-
-  const wallet = response.data?.wallets?.[0]
-  if (!wallet?.address) throw new Error('Circle não retornou endereço')
-
-  db[userId] = {
-    address: wallet.address,
-    walletId: wallet.id,
-    email: email || undefined,
-    createdAt: new Date().toISOString(),
-  }
-  dbWrite(db)
-  console.log('[Circle] ✅ Wallet criada:', wallet.address)
-  return db[userId]
-}
+// getOrCreateWallet now lives in circle.mjs (imported above) so agent.mjs's
+// scheduled-payment auto-provisioning can reuse it without duplicating the
+// createWallets() call.
 
 // ── Express ───────────────────────────────────────────────────────────────────
 const app = express()
@@ -152,7 +97,7 @@ app.get('/api/wallet/info', async (req, res) => {
   try {
     const email = (req.query.email ?? '').toString().trim()
     if (email) {
-      let entry = findWalletByEmail(email)
+      let entry = findUserByEmail(email)
       if (!entry) {
         const userId = 'email:' + email.toLowerCase()
         entry = { userId, ...(await getOrCreateWallet(userId, email)) }
@@ -264,7 +209,7 @@ app.post('/api/wallet/get-or-create', async (req, res) => {
 app.get('/api/debug/circle-balance', async (req, res) => {
   const walletId = req.query.walletId ?? '05bf6b47-a96d-5aa5-b732-c6f7fa2926c2'
   try {
-    const result = await getCircleClient().listWalletBalance({ id: walletId })
+    const result = await getCircleClient().getWalletTokenBalance({ id: walletId })
     return res.json({ walletId, balances: result?.data?.tokenBalances ?? [], raw: result?.data })
   } catch (err) {
     return res.status(500).json({ error: err.message, walletId })
@@ -291,7 +236,7 @@ app.get('/api/wallet/balance', async (req, res) => {
   const walletId = resolveWalletId(req, address)
   if (!walletId) return res.status(404).json({ error: 'Wallet ID não encontrado' })
   try {
-    const result = await getCircleClient().listWalletBalance({ id: walletId })
+    const result = await getCircleClient().getWalletTokenBalance({ id: walletId })
     return res.json({ balances: result?.data?.tokenBalances ?? [] })
   } catch (err) {
     return res.status(500).json({ error: err.message })
@@ -428,8 +373,50 @@ app.get('/api/explorer/address/:address/info', async (req, res) => {
   }
 })
 
+app.get('/api/explorer/address/:address/counters', async (req, res) => {
+  console.log('[Explorer] GET counters for', req.params.address)
+  try {
+    const data = await fetchAddressCounters(req.params.address)
+    console.log('[Explorer] counters OK – transactions_count:', data?.transactions_count)
+    res.json(data)
+  } catch(err) {
+    console.error('[Explorer] counters FAIL:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ── Agent chat (Claude claude-sonnet-4-6 + tool_use) ─────────────────────────
 app.use('/api/agent', agentRouter)
+
+// ── Global transaction notifications (SSE) ────────────────────────────────────
+// Scheduled payments execute on the backend with no button click to react
+// to — this stream is how the frontend learns about them (and their
+// outcome) in near real time, regardless of which screen the user is on.
+app.get('/api/notifications/stream', (req, res) => {
+  const address = (req.query.address ?? '').toString().toLowerCase()
+
+  res.writeHead(200, {
+    'Content-Type':      'text/event-stream',
+    'Cache-Control':     'no-cache',
+    'Connection':        'keep-alive',
+    'X-Accel-Buffering': 'no',
+  })
+  res.write(': connected\n\n')
+
+  const onNotification = (payload) => {
+    if (address && payload.walletAddress && payload.walletAddress !== address) return
+    res.write(`data: ${JSON.stringify(payload)}\n\n`)
+  }
+  notificationBus.on('notification', onNotification)
+
+  // Keep intermediary proxies from closing an idle connection.
+  const heartbeat = setInterval(() => res.write(': ping\n\n'), 25000)
+
+  req.on('close', () => {
+    clearInterval(heartbeat)
+    notificationBus.off('notification', onNotification)
+  })
+})
 
 const PORT = 3002
 app.listen(PORT, () => {
@@ -437,6 +424,8 @@ app.listen(PORT, () => {
   console.log('   Auth: Privy (frontend-only)')
   console.log('   Circle Wallet Set:', CIRCLE_WALLET_SET_ID)
   console.log(`   Explorer proxy: GET /api/explorer/address/:address`)
+
+  startPaymentScheduler()
 
   // Startup test: verify ArcScan API is reachable
   fetch('https://testnet.arcscan.app/api/v2/addresses/0xd4de2458b99D029EF7ca75F3087CAD28E17e20A2/transactions', { headers: { Accept: 'application/json' } })

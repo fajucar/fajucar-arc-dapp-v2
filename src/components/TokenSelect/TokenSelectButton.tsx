@@ -20,7 +20,7 @@ export function TokenSelectButton({
   excludedAddress,
   accountAddress,
   showBalance = true,
-  placeholder = 'Selecionar',
+  placeholder = 'Select',
   className = '',
 }: TokenSelectButtonProps) {
   const [open, setOpen] = useState(false)
@@ -51,7 +51,7 @@ export function TokenSelectButton({
         selectedAddress={selected?.address}
         accountAddress={accountAddress}
         showBalance={showBalance}
-        title="Selecionar token"
+        title="Select token"
       />
     </>
   )

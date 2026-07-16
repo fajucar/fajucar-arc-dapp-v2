@@ -3,19 +3,20 @@
  * Visual: glassmorphism futurista — lógica e dados 100% intactos.
  */
 
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useChainId } from 'wagmi'
 import { motion } from 'framer-motion'
 import { RefreshCw, Wallet, AlertCircle, ExternalLink, Settings2, Coins } from 'lucide-react'
-import { formatUnits } from 'viem'
 import { useV3Positions, type V3PositionInfo } from './hooks/useV3Positions'
 import { getV3ConfigError, getV3Addresses } from './config'
 import { AddV3LiquidityCard } from './AddV3LiquidityCard'
 import { PoolCardSkeleton } from '@/components/ui/Skeleton'
-import { formatNumber } from '@/lib/format'
+import { formatTokenAmount } from '@/lib/format'
 import { ARCDEX } from '@/config/arcDex'
 import { useArcWallet } from '@/hooks/useArcWallet'
 import { glassCard, innerCell, TokenPairIcons } from '@/components/PositionCardShared'
+import { makeToken, tickPriceLabel, fullRangeTicks } from './lib/sdk'
 import type { CSSProperties } from 'react'
 
 function alertGlass(r: number, g: number, b: number): CSSProperties {
@@ -57,7 +58,7 @@ function RangeBar({
             'rgba(239,68,68,0.75) 100%)',
           boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5), 0 0 8px rgba(45,212,160,0.1)',
         }}
-        title={`Preço atual: tick ${currentTick} (intervalo ${tickLower}..${tickUpper})`}
+        title={`Current price: tick ${currentTick} (range ${tickLower}..${tickUpper})`}
       >
         {/* Marker: centred at pct%, diamond + vertical line */}
         <div style={{
@@ -104,9 +105,29 @@ function RangeBar({
 
 // ── PositionCard ──────────────────────────────────────────────────────────────
 function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionManager: string }) {
+  const chainId = useChainId()
   const hasFees = pos.tokensOwed0 > 0n || pos.tokensOwed1 > 0n
   const sym0 = pos.symbol0
   const sym1 = pos.symbol1
+
+  const priceLabels = useMemo(() => {
+    try {
+      const token0 = makeToken(chainId ?? 0, pos.token0, pos.decimals0, sym0)
+      const token1 = makeToken(chainId ?? 0, pos.token1, pos.decimals1, sym1)
+      // Full-range positions have astronomically small/large boundary prices — show 0/∞ like
+      // Uniswap's own UI instead of a 40-digit number.
+      const fullRange = fullRangeTicks(pos.fee)
+      const isFullRange = fullRange.tickLower === pos.tickLower && fullRange.tickUpper === pos.tickUpper
+      return {
+        min: isFullRange ? '0' : tickPriceLabel(token0, token1, Math.min(pos.tickLower, pos.tickUpper)),
+        current: tickPriceLabel(token0, token1, pos.currentTick),
+        max: isFullRange ? '∞' : tickPriceLabel(token0, token1, Math.max(pos.tickLower, pos.tickUpper)),
+      }
+    } catch {
+      return { min: '—', current: '—', max: '—' }
+    }
+  }, [chainId, pos.token0, pos.token1, pos.decimals0, pos.decimals1, sym0, sym1, pos.tickLower, pos.tickUpper, pos.currentTick, pos.fee])
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -147,7 +168,7 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
                       transition={{ duration: 2, repeat: Infinity }}
                       style={{ width: 8, height: 8, borderRadius: '50%', background: '#2dd4a0', display: 'inline-block', flexShrink: 0 }}
                     />
-                    <span style={{ color: '#2dd4a0' }}>Dentro do range</span>
+                    <span style={{ color: '#2dd4a0' }}>In range</span>
                   </>
                 ) : (
                   <>
@@ -156,7 +177,7 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
                       transition={{ duration: 2, repeat: Infinity }}
                       style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', display: 'inline-block', flexShrink: 0 }}
                     />
-                    <span style={{ color: '#f59e0b' }}>Fora do range</span>
+                    <span style={{ color: '#f59e0b' }}>Out of range</span>
                   </>
                 )}
               </span>
@@ -188,7 +209,7 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
             }}
           >
             <Settings2 size={14} />
-            Gerenciar
+            Manage
           </Link>
 
           {/* Coletar taxas — glass se disponível, disabled se não */}
@@ -216,11 +237,11 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
               }}
             >
               <Coins size={14} />
-              Coletar taxas
+              Collect fees
             </Link>
           ) : (
             <span
-              title="Sem taxas ainda. As taxas acumulam quando outros negociam no seu range."
+              title="No fees yet. Fees accrue when others trade within your range."
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
                 padding: '8px 16px', borderRadius: 12, fontSize: 13, fontWeight: 600,
@@ -231,7 +252,7 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
               }}
             >
               <Coins size={14} />
-              Coletar taxas
+              Collect fees
             </span>
           )}
         </div>
@@ -243,7 +264,7 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
           color: '#475569', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
           textTransform: 'uppercase', marginBottom: 10,
         }}>
-          Intervalo de Preço
+          Price Range
         </div>
         <RangeBar
           tickLower={pos.tickLower}
@@ -255,11 +276,11 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
           display: 'flex', justifyContent: 'space-between',
           marginTop: 12, fontSize: 11, fontFamily: 'ui-monospace,monospace',
         }}>
-          <span style={{ color: '#475569' }}>Mín {pos.tickLower}</span>
+          <span style={{ color: '#475569' }}>Min {priceLabels.min} {sym1}</span>
           <span style={{ color: pos.inRange ? '#2dd4a0' : '#f59e0b', fontWeight: 700 }}>
-            Atual {pos.currentTick}
+            Current {priceLabels.current} {sym1}
           </span>
-          <span style={{ color: '#475569' }}>Máx {pos.tickUpper}</span>
+          <span style={{ color: '#475569' }}>Max {priceLabels.max} {sym1}</span>
         </div>
       </div>
 
@@ -271,7 +292,7 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
               {pos.symbol0}
             </div>
             <div style={{ color: '#f0f4ff', fontSize: 15, fontWeight: 700 }}>
-              {formatNumber(formatUnits(pos.amount0, pos.decimals0), 4)}
+              {formatTokenAmount(pos.amount0, pos.decimals0)}
             </div>
           </div>
 
@@ -280,13 +301,13 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
               {pos.symbol1}
             </div>
             <div style={{ color: '#f0f4ff', fontSize: 15, fontWeight: 700 }}>
-              {formatNumber(formatUnits(pos.amount1, pos.decimals1), 4)}
+              {formatTokenAmount(pos.amount1, pos.decimals1)}
             </div>
           </div>
 
           <div style={innerCell}>
             <div style={{ color: '#475569', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7 }}>
-              ID do Token
+              Token ID
             </div>
             <div style={{ color: '#f0f4ff', fontSize: 15, fontWeight: 700 }}>
               #{pos.tokenId.toString()}
@@ -295,7 +316,7 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
 
           <div style={innerCell}>
             <div style={{ color: '#475569', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7 }}>
-              Intervalo (ticks)
+              Range (ticks)
             </div>
             <div style={{ color: '#64748b', fontSize: 11, fontFamily: 'ui-monospace,monospace', fontWeight: 500 }}>
               [{pos.tickLower} .. {pos.tickUpper}]
@@ -313,9 +334,9 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
       }}>
         <span
           style={{ color: '#2d3a4a', fontSize: 11, fontFamily: 'ui-monospace,monospace' }}
-          title="Liquidez bruta do contrato, para verificação no explorer"
+          title="Raw contract liquidity, for verification on the explorer"
         >
-          Liquidez (raw): {pos.liquidity.toString()}
+          Liquidity (raw): {pos.liquidity.toString()}
         </span>
         <a
           href={`${ARCDEX.explorer}/address/${positionManager}?a=${pos.tokenId.toString()}`}
@@ -335,7 +356,7 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
             e.currentTarget.style.textShadow = 'none'
           }}
         >
-          Ver no ArcScan
+          View on ArcScan
           <ExternalLink size={12} />
         </a>
       </div>
@@ -347,9 +368,9 @@ function PositionCard({ pos, positionManager }: { pos: V3PositionInfo; positionM
           paddingTop: 10, marginTop: 10,
           fontSize: 12, color: '#2dd4a0',
         }}>
-          Taxas pendentes:{' '}
-          {pos.tokensOwed0 > 0n ? formatNumber(formatUnits(pos.tokensOwed0, pos.decimals0), 4) : '0'} /{' '}
-          {pos.tokensOwed1 > 0n ? formatNumber(formatUnits(pos.tokensOwed1, pos.decimals1), 4) : '0'} (token0/token1)
+          Pending fees:{' '}
+          {formatTokenAmount(pos.tokensOwed0, pos.decimals0)} /{' '}
+          {formatTokenAmount(pos.tokensOwed1, pos.decimals1)} (token0/token1)
         </div>
       )}
     </motion.div>
@@ -374,7 +395,7 @@ export function V3PositionsPage() {
   if (isWrongChain) {
     return (
       <div style={{ ...alertGlass(245, 158, 11), color: '#fbbf24', fontSize: 14 }}>
-        Conecte-se à <strong>Arc Testnet</strong> para visualizar suas posições V3.
+        Connect to <strong>Arc Testnet</strong> to view your V3 positions.
       </div>
     )
   }
@@ -383,7 +404,7 @@ export function V3PositionsPage() {
     return (
       <div style={{ ...alertGlass(239, 68, 68), color: '#f87171', fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
         <AlertCircle size={18} style={{ flexShrink: 0 }} />
-        {configError} Ações V3 desabilitadas.
+        {configError} V3 actions disabled.
       </div>
     )
   }
@@ -413,10 +434,10 @@ export function V3PositionsPage() {
           </motion.div>
         </div>
         <h2 style={{ color: '#f0f4ff', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>
-          Conecte sua carteira
+          Connect your wallet
         </h2>
         <p style={{ color: '#475569', fontSize: 14 }}>
-          Conecte-se para visualizar e gerenciar suas posições V3 NFT.
+          Connect to view and manage your V3 NFT positions.
         </p>
       </div>
     )
@@ -427,7 +448,7 @@ export function V3PositionsPage() {
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 style={{ color: '#e2e8f0', fontSize: 18, fontWeight: 700 }}>Suas posições V3</h2>
+        <h2 style={{ color: '#e2e8f0', fontSize: 18, fontWeight: 700 }}>Your V3 Positions</h2>
         <div className="flex items-center gap-2">
           <AddV3LiquidityCard onMintSuccess={refetch} />
           <button
@@ -446,7 +467,7 @@ export function V3PositionsPage() {
             onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(78,163,255,0.07)' }}
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            Atualizar
+            Refresh
           </button>
         </div>
       </div>
@@ -473,10 +494,10 @@ export function V3PositionsPage() {
       {!loading && positions.length === 0 && !error && (
         <div style={{ ...glassCard, textAlign: 'center', padding: '48px 24px' }}>
           <p style={{ color: '#64748b', marginBottom: 14, fontSize: 15 }}>
-            Você ainda não possui posições V3.
+            You don't have any V3 positions yet.
           </p>
           <p style={{ color: '#374151', fontSize: 13, marginBottom: 24 }}>
-            Adicione liquidez em um pool V3 para criar uma posição NFT.
+            Add liquidity to a V3 pool to create an NFT position.
           </p>
           <AddV3LiquidityCard onMintSuccess={refetch} />
           <div style={{ marginTop: 16 }}>
@@ -489,7 +510,7 @@ export function V3PositionsPage() {
                 fontSize: 13, color: '#4ea3ff', textDecoration: 'none',
               }}
             >
-              Ver Position Manager no explorer
+              View Position Manager on explorer
               <ExternalLink size={13} />
             </a>
           </div>

@@ -59,17 +59,17 @@ function CircleGoogleFaucet({ address, variant }: { address: string; variant: Fa
     try {
       await navigator.clipboard.writeText(address)
       setCopied(true)
-      toast.success('Endereço copiado!')
+      toast.success('Address copied!')
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      toast.error('Falha ao copiar')
+      toast.error('Failed to copy')
     }
   }
 
   return (
     <div className={`space-y-3 ${isCompact ? '' : 'space-y-4'}`}>
       <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-3">
-        <p className="text-xs text-slate-400 mb-1">Sua carteira:</p>
+        <p className="text-xs text-slate-400 mb-1">Your wallet:</p>
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-mono text-white font-medium">
             {formatWalletShort(address)}
@@ -80,7 +80,7 @@ function CircleGoogleFaucet({ address, variant }: { address: string; variant: Fa
             className="inline-flex items-center gap-1 rounded-lg border border-slate-600/60 bg-slate-700/40 px-2.5 py-1.5 text-xs text-slate-200 hover:bg-slate-700/70 transition-colors"
           >
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-            Copiar
+            Copy
           </button>
         </div>
       </div>
@@ -105,7 +105,7 @@ function CircleGoogleFaucet({ address, variant }: { address: string; variant: Fa
       </div>
 
       <p className="text-[11px] text-slate-500 text-center leading-relaxed">
-        Cole seu endereço no faucet para receber tokens de teste
+        Paste your address into the faucet to receive test tokens
       </p>
     </div>
   )
@@ -211,22 +211,22 @@ export function FaucetPanel({ variant = 'normal' }: FaucetPanelProps) {
 
   const handleClaim = async (tokenSymbol: string) => {
     if (!address) {
-      toast.error('Conecte a wallet')
+      toast.error('Connect your wallet')
       return
     }
     if (isWrongChain) {
-      toast.error('Conecte à Arc Testnet')
+      toast.error('Connect to Arc Testnet')
       return
     }
     const token = FAUCET_TOKENS.find((t) => t.symbol === tokenSymbol)
     if (!token) return
     const rem = remainingByToken[tokenSymbol] ?? 0
     if (rem > 0) {
-      toast.error('Cooldown ativo. Aguarde o countdown.')
+      toast.error('Cooldown active. Wait for the countdown.')
       return
     }
     setClaimingToken(tokenSymbol)
-    const toastId = toast.loading('Enviando claim...')
+    const toastId = toast.loading('Sending claim...')
     try {
       await writeContractAsync({
         address: FAUCET_ADDRESS,
@@ -238,19 +238,19 @@ export function FaucetPanel({ variant = 'normal' }: FaucetPanelProps) {
       const endTime = Date.now() + COOLDOWN_MS
       setRemainingByToken(prev => ({ ...prev, [tokenSymbol]: Math.floor(COOLDOWN_MS / 1000) }))
       setEndsAtByToken(prev => ({ ...prev, [tokenSymbol]: endTime }))
-      toast.success('Claim confirmado! ✅', { id: toastId })
+      toast.success('Claim confirmed! ✅', { id: toastId })
       fetchRemaining()
     } catch (err: unknown) {
       const msg =
         (err as { shortMessage?: string; message?: string })?.shortMessage ||
         (err as { message?: string })?.message ||
-        'Falha no claim'
+        'Claim failed'
       if (/rejected|denied|user denied/i.test(msg)) {
-        toast.error('Transação cancelada', { id: toastId })
+        toast.error('Transaction cancelled', { id: toastId })
       } else if (/cooldown|wait/i.test(msg)) {
-        toast.error('Cooldown ainda ativo', { id: toastId })
+        toast.error('Cooldown still active', { id: toastId })
       } else if (/empty|vazio|insufficient/i.test(msg)) {
-        toast.error('Faucet vazio', { id: toastId })
+        toast.error('Faucet is empty', { id: toastId })
       } else {
         toast.error(msg.slice(0, 100), { id: toastId })
       }
@@ -265,7 +265,7 @@ export function FaucetPanel({ variant = 'normal' }: FaucetPanelProps) {
     return (
       <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4 text-center">
         <Droplet className="h-10 w-10 text-slate-500 mx-auto mb-2" />
-        <p className="text-slate-400 text-sm">Conecte a wallet para usar o faucet</p>
+        <p className="text-slate-400 text-sm">Connect your wallet to use the faucet</p>
       </div>
     )
   }
@@ -275,9 +275,9 @@ export function FaucetPanel({ variant = 'normal' }: FaucetPanelProps) {
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-3">
         <AlertCircle className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="font-medium text-amber-200 text-sm">Rede incorreta</p>
+          <p className="font-medium text-amber-200 text-sm">Wrong network</p>
           <p className="text-xs text-amber-200/90 mt-0.5">
-            Conecte à Arc Testnet para reivindicar FAJU e ARCX.
+            Connect to Arc Testnet to claim FAJU and ARCX.
           </p>
         </div>
       </div>
@@ -330,7 +330,7 @@ export function FaucetPanel({ variant = 'normal' }: FaucetPanelProps) {
               ) : (
                 <Droplet className="h-4 w-4 shrink-0" />
               )}
-              {!canClaim ? `${token.symbol} em cooldown` : `Claim ${token.claimAmount} ${token.symbol}`}
+              {!canClaim ? `${token.symbol} on cooldown` : `Claim ${token.claimAmount} ${token.symbol}`}
             </button>
           </div>
         )

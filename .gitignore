@@ -8,3 +8,7 @@ dist
 artifacts/
 cache/
 server/wallets-db.json
+
+# Privy authorization keys — NEVER commit. Privy cannot recover the private key.
+*.pem
+privy-authorization-*.pem

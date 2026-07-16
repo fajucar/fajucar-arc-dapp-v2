@@ -5,6 +5,7 @@ import { useArcWallet } from '@/hooks/useArcWallet'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { formatUnits } from 'viem'
+import { formatMoney } from '@/lib/format'
 
 const ERC20_BALANCE_ABI = [
   { name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] },
@@ -39,7 +40,7 @@ export function TokenSelectModal({
   selectedAddress,
   accountAddress,
   showBalance = true,
-  title = 'Selecionar token',
+  title = 'Select token',
 }: TokenSelectModalProps) {
   const [search, setSearch] = useState('')
   const [balances, setBalances] = useState<Record<string, string>>({})
@@ -89,9 +90,9 @@ export function TokenSelectModal({
   const handleCopy = async (addr: string) => {
     try {
       await navigator.clipboard.writeText(addr)
-      toast.success('Copiado')
+      toast.success('Copied')
     } catch {
-      toast.error('Falha ao copiar')
+      toast.error('Failed to copy')
     }
   }
 
@@ -129,13 +130,13 @@ export function TokenSelectModal({
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar token..."
+                placeholder="Search token..."
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50 text-base sm:text-sm"
               />
             </div>
             <div className="max-h-80 overflow-y-auto space-y-2">
               {displayTokens.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-sm">Nenhum token encontrado</div>
+                <div className="p-6 text-center text-slate-500 text-sm">No tokens found</div>
               ) : (
                 displayTokens.map((token) => (
                   <TokenRow
@@ -204,14 +205,14 @@ function TokenRow({
       <div className="flex items-center gap-2 shrink-0">
         {balance !== undefined && (
           <span className="hidden sm:inline text-xs text-slate-400 font-mono">
-            {parseFloat(balance || '0').toLocaleString(undefined, { maximumFractionDigits: 4 })}
+            {formatMoney(balance || '0', 4)}
           </span>
         )}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); handleCopy() }}
             className="p-1 rounded hover:bg-slate-600/50 text-slate-500 hover:text-slate-200 transition-colors"
-            title="Copiar endereco"
+            title="Copy address"
           >
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
           </button>

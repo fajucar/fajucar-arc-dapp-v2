@@ -52,10 +52,10 @@ type Job = {
 }
 
 const STATUS_LABELS: Record<JobStatus, string> = {
-  0: 'Aberto',
-  1: 'Financiado',
-  2: 'Entregue',
-  3: 'Concluído',
+  0: 'Open',
+  1: 'Funded',
+  2: 'Delivered',
+  3: 'Completed',
 }
 
 const STATUS_CLASSES: Record<JobStatus, string> = {
@@ -79,7 +79,7 @@ function TxLink({ hash }: { hash: string }) {
       rel="noopener noreferrer"
       className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300 text-xs"
     >
-      Ver tx <ExternalLink className="h-3 w-3" />
+      View tx <ExternalLink className="h-3 w-3" />
     </a>
   )
 }
@@ -102,13 +102,13 @@ function CreateJobForm({ onCreated }: { onCreated: () => void }) {
   const [lastTx, setLastTx] = useState<string | null>(null)
 
   const handleCreate = async () => {
-    if (!address || !publicClient) { toast.error('Conecte sua carteira'); return }
-    if (!form.description.trim()) { toast.error('Informe uma descrição'); return }
-    if (!form.provider || !form.provider.startsWith('0x')) { toast.error('Endereço do provider inválido'); return }
-    if (!form.budget || parseFloat(form.budget) <= 0) { toast.error('Informe um budget válido'); return }
+    if (!address || !publicClient) { toast.error('Connect your wallet'); return }
+    if (!form.description.trim()) { toast.error('Enter a description'); return }
+    if (!form.provider || !form.provider.startsWith('0x')) { toast.error('Invalid provider address'); return }
+    if (!form.budget || parseFloat(form.budget) <= 0) { toast.error('Enter a valid budget'); return }
 
     setLoading(true)
-    const toastId = toast.loading('Criando job...')
+    const toastId = toast.loading('Creating job...')
     try {
       const expiredAt = BigInt(Math.floor(Date.now() / 1000) + parseInt(form.expiryHours) * 3600)
       const budgetAmount = parseUnits(form.budget, USDC_DECIMALS)
@@ -145,12 +145,12 @@ function CreateJobForm({ onCreated }: { onCreated: () => void }) {
         await publicClient.waitForTransactionReceipt({ hash: budgetHash })
       }
 
-      toast.success('Job criado com sucesso!', { id: toastId })
+      toast.success('Job created successfully!', { id: toastId })
       setForm({ description: '', budget: '', provider: '', expiryHours: '1' })
       setOpen(false)
       onCreated()
     } catch (err: any) {
-      const msg = err?.shortMessage ?? err?.message ?? 'Erro ao criar job'
+      const msg = err?.shortMessage ?? err?.message ?? 'Error creating job'
       toast.error(msg.slice(0, 100), { id: toastId })
     } finally {
       setLoading(false)
@@ -165,7 +165,7 @@ function CreateJobForm({ onCreated }: { onCreated: () => void }) {
       >
         <span className="flex items-center gap-2">
           <Plus className="h-4 w-4 text-cyan-400" />
-          Criar Novo Job
+          Create New Job
         </span>
         {open ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
       </button>
@@ -183,11 +183,11 @@ function CreateJobForm({ onCreated }: { onCreated: () => void }) {
               {/* Description */}
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
-                  Descrição do Job
+                  Job Description
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Descreva o trabalho a ser realizado..."
+                  placeholder="Describe the work to be performed..."
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   className="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none resize-none"
@@ -197,7 +197,7 @@ function CreateJobForm({ onCreated }: { onCreated: () => void }) {
               {/* Provider */}
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
-                  Endereço do Provider (Agente)
+                  Provider Address (Agent)
                 </label>
                 <input
                   type="text"
@@ -227,18 +227,18 @@ function CreateJobForm({ onCreated }: { onCreated: () => void }) {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
-                    Expiração
+                    Expiration
                   </label>
                   <select
                     value={form.expiryHours}
                     onChange={(e) => setForm((f) => ({ ...f, expiryHours: e.target.value }))}
                     className="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
                   >
-                    <option value="1">1 hora</option>
-                    <option value="6">6 horas</option>
-                    <option value="24">24 horas</option>
-                    <option value="72">3 dias</option>
-                    <option value="168">7 dias</option>
+                    <option value="1">1 hour</option>
+                    <option value="6">6 hours</option>
+                    <option value="24">24 hours</option>
+                    <option value="72">3 days</option>
+                    <option value="168">7 days</option>
                   </select>
                 </div>
               </div>
@@ -246,7 +246,7 @@ function CreateJobForm({ onCreated }: { onCreated: () => void }) {
               {lastTx && (
                 <div className="flex items-center gap-2 text-xs text-emerald-400">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  Job criado! <TxLink hash={lastTx} />
+                  Job created! <TxLink hash={lastTx} />
                 </div>
               )}
 
@@ -256,7 +256,7 @@ function CreateJobForm({ onCreated }: { onCreated: () => void }) {
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-2.5 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                {loading ? 'Criando...' : 'Criar Job'}
+                {loading ? 'Creating...' : 'Create Job'}
               </button>
             </div>
           </motion.div>
@@ -286,17 +286,17 @@ function JobCard({ job, userAddress, onRefresh }: { job: Job; userAddress: Addre
       const hash = await fn()
       await publicClient.waitForTransactionReceipt({ hash })
       setLastTx(hash)
-      toast.success(`${label} concluído!`, { id: toastId })
+      toast.success(`${label} completed!`, { id: toastId })
       onRefresh()
     } catch (err: any) {
-      toast.error((err?.shortMessage ?? err?.message ?? 'Erro').slice(0, 100), { id: toastId })
+      toast.error((err?.shortMessage ?? err?.message ?? 'Error').slice(0, 100), { id: toastId })
     } finally {
       setLoading(null)
     }
   }
 
   const handleFund = () =>
-    act('Financiando', async () => {
+    act('Funding', async () => {
       // 1. approve USDC
       await writeContractAsync({
         address: USDC_ADDRESS,
@@ -314,10 +314,10 @@ function JobCard({ job, userAddress, onRefresh }: { job: Job; userAddress: Addre
     })
 
   const handleSubmit = () => {
-    if (!deliverable.trim()) { toast.error('Informe o hash/link do deliverable'); return }
+    if (!deliverable.trim()) { toast.error('Enter the deliverable hash/link'); return }
     // Convert string to bytes32
     const delivHex = toHex(deliverable.trim().slice(0, 32).padEnd(32, '\0')) as `0x${string}`
-    act('Entregando', () =>
+    act('Delivering', () =>
       writeContractAsync({
         address: AGENTIC_COMMERCE,
         abi: agenticCommerceAbi,
@@ -328,12 +328,12 @@ function JobCard({ job, userAddress, onRefresh }: { job: Job; userAddress: Addre
   }
 
   const handleComplete = () =>
-    act('Aprovando', () =>
+    act('Approving', () =>
       writeContractAsync({
         address: AGENTIC_COMMERCE,
         abi: agenticCommerceAbi,
         functionName: 'complete',
-        args: [job.id, 'Trabalho aprovado pelo cliente', ZERO_BYTES],
+        args: [job.id, 'Work approved by client', ZERO_BYTES],
       })
     )
 
@@ -347,7 +347,7 @@ function JobCard({ job, userAddress, onRefresh }: { job: Job; userAddress: Addre
             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${STATUS_CLASSES[job.status]}`}>
               {STATUS_LABELS[job.status]}
             </span>
-            {isClient   && <span className="rounded-full bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 text-[10px] text-cyan-400">Cliente</span>}
+            {isClient   && <span className="rounded-full bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 text-[10px] text-cyan-400">Client</span>}
             {isProvider && <span className="rounded-full bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 text-[10px] text-purple-400">Provider</span>}
           </div>
           <p className="text-sm text-white font-medium leading-5 line-clamp-2">{job.description}</p>
@@ -365,10 +365,10 @@ function JobCard({ job, userAddress, onRefresh }: { job: Job; userAddress: Addre
           <div className="font-mono text-slate-300 truncate">{job.provider.slice(0, 10)}...{job.provider.slice(-6)}</div>
         </div>
         <div className="rounded-lg bg-slate-800/60 px-2 py-1.5">
-          <div className="text-slate-500 mb-0.5">Expira em</div>
+          <div className="text-slate-500 mb-0.5">Expires on</div>
           <div className="text-slate-300">
             {job.expiredAt > 0n
-              ? new Date(Number(job.expiredAt) * 1000).toLocaleDateString('pt-BR')
+              ? new Date(Number(job.expiredAt) * 1000).toLocaleDateString('en-US')
               : '—'}
           </div>
         </div>
@@ -383,8 +383,8 @@ function JobCard({ job, userAddress, onRefresh }: { job: Job; userAddress: Addre
             disabled={!!loading}
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-amber-500/20 border border-amber-500/30 py-2 text-xs font-bold text-amber-300 hover:bg-amber-500/30 disabled:opacity-50 transition-all"
           >
-            {loading === 'Financiando' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-            {loading === 'Financiando' ? 'Financiando...' : '💰 Financiar Escrow'}
+            {loading === 'Funding' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {loading === 'Funding' ? 'Funding...' : '💰 Fund Escrow'}
           </button>
         )}
 
@@ -395,8 +395,8 @@ function JobCard({ job, userAddress, onRefresh }: { job: Job; userAddress: Addre
             disabled={!!loading}
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-500/30 disabled:opacity-50 transition-all"
           >
-            {loading === 'Aprovando' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-            {loading === 'Aprovando' ? 'Aprovando...' : '✅ Aprovar Entrega'}
+            {loading === 'Approving' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {loading === 'Approving' ? 'Approving...' : '✅ Approve Delivery'}
           </button>
         )}
 
@@ -405,7 +405,7 @@ function JobCard({ job, userAddress, onRefresh }: { job: Job; userAddress: Addre
           <div className="space-y-2">
             <input
               type="text"
-              placeholder="Hash ou link do deliverable..."
+              placeholder="Deliverable hash or link..."
               value={deliverable}
               onChange={(e) => setDeliverable(e.target.value)}
               className="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-purple-500/50 focus:outline-none"
@@ -415,8 +415,8 @@ function JobCard({ job, userAddress, onRefresh }: { job: Job; userAddress: Addre
               disabled={!!loading}
               className="w-full flex items-center justify-center gap-2 rounded-lg bg-purple-500/20 border border-purple-500/30 py-2 text-xs font-bold text-purple-300 hover:bg-purple-500/30 disabled:opacity-50 transition-all"
             >
-              {loading === 'Entregando' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              {loading === 'Entregando' ? 'Entregando...' : '📦 Entregar Trabalho'}
+              {loading === 'Delivering' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {loading === 'Delivering' ? 'Delivering...' : '📦 Deliver Work'}
             </button>
           </div>
         )}
@@ -532,7 +532,7 @@ function JobsList({ userAddress, refreshKey }: { userAddress: Address; refreshKe
       })
       setJobIdInput('')
     } catch {
-      toast.error('Job não encontrado')
+      toast.error('Job not found')
     } finally {
       setLoading(false)
     }
@@ -544,7 +544,7 @@ function JobsList({ userAddress, refreshKey }: { userAddress: Address; refreshKe
       <div className="flex gap-2">
         <input
           type="number"
-          placeholder="Buscar por Job ID..."
+          placeholder="Search by Job ID..."
           value={jobIdInput}
           onChange={(e) => setJobIdInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') handleLookup() }}
@@ -561,15 +561,15 @@ function JobsList({ userAddress, refreshKey }: { userAddress: Address; refreshKe
 
       {loading && jobs.length === 0 && (
         <div className="flex items-center justify-center gap-2 py-8 text-slate-400 text-sm">
-          <Loader2 className="h-4 w-4 animate-spin" /> Carregando jobs...
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading jobs...
         </div>
       )}
 
       {!loading && jobs.length === 0 && (
         <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
           <Briefcase className="h-8 w-8 text-slate-600" />
-          <p className="text-sm text-slate-400">Nenhum job encontrado</p>
-          <p className="text-xs text-slate-600">Crie um job ou busque pelo ID acima</p>
+          <p className="text-sm text-slate-400">No jobs found</p>
+          <p className="text-xs text-slate-600">Create a job or search by ID above</p>
         </div>
       )}
 
@@ -592,7 +592,7 @@ export function JobsSection() {
       <div className="rounded-2xl border border-slate-700/50 bg-slate-900/40 p-5 text-center space-y-2">
         <Briefcase className="h-8 w-8 text-slate-600 mx-auto" />
         <p className="text-sm font-semibold text-white">Jobs (ERC-8183)</p>
-        <p className="text-xs text-slate-400">Conecte sua carteira para gerenciar jobs</p>
+        <p className="text-xs text-slate-400">Connect your wallet to manage jobs</p>
       </div>
     )
   }
@@ -642,8 +642,8 @@ export function JobsSection() {
               <div className="flex items-start gap-2 rounded-lg border border-slate-700/50 bg-slate-800/40 px-3 py-2.5">
                 <AlertCircle className="h-3.5 w-3.5 text-slate-500 flex-shrink-0 mt-0.5" />
                 <div className="text-[11px] text-slate-400 leading-relaxed">
-                  Jobs permitem criar acordos on-chain com escrow em USDC.
-                  Contrato: <a href={`${EXPLORER_URL}/address/${AGENTIC_COMMERCE}`} target="_blank" rel="noreferrer" className="text-cyan-400 hover:text-cyan-300 font-mono">{AGENTIC_COMMERCE.slice(0, 10)}...</a>
+                  Jobs let you create on-chain agreements with USDC escrow.
+                  Contract: <a href={`${EXPLORER_URL}/address/${AGENTIC_COMMERCE}`} target="_blank" rel="noreferrer" className="text-cyan-400 hover:text-cyan-300 font-mono">{AGENTIC_COMMERCE.slice(0, 10)}...</a>
                 </div>
               </div>
 
@@ -651,7 +651,7 @@ export function JobsSection() {
 
               <div>
                 <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
-                  Meus Jobs
+                  My Jobs
                 </h4>
                 <JobsList userAddress={address} refreshKey={refreshKey} />
               </div>

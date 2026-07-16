@@ -14,15 +14,69 @@
   --faju-blue: #3b82f6;
 }
 
+/* Global scrollbar — thin, dark track, subtle slate/cyan thumb.
+   Applied everywhere by default so no container has to opt in with
+   .custom-scrollbar; that class (below) still exists for one-off overrides. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #0f172a;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+*::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--faju-cyan-glow);
+}
+
 @layer base {
   body {
     @apply text-white font-sans antialiased selection:bg-purple-500/30 selection:text-purple-100;
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: linear-gradient(135deg, #1a0a3c 0%, #3d1464 30%, #6b1d5a 60%, #9b2648 85%, #c23a4a 100%);
-    background-attachment: fixed;
+    background: linear-gradient(135deg, #060409 0%, #0d0714 50%, #140b20 100%);
     min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -150px;
+    left: -100px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -100px;
+    right: -100px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.13) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  [data-theme="black-glass"] body::before {
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.10) 0%, transparent 70%);
+  }
+
+  [data-theme="black-glass"] body::after {
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.08) 0%, transparent 70%);
   }
 
   h1, h2, h3 {
@@ -106,7 +160,46 @@
 }
 
 .glass-card {
-  @apply bg-slate-800/40 backdrop-blur-md border border-slate-700/50 shadow-sm hover:shadow-[0_0_30px_rgba(34,211,238,0.15)] hover:border-cyan-500/30 transition-all duration-300;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  pointer-events: none;
+}
+
+.glass-card:hover {
+  border-color: rgba(168, 85, 247, 0.4);
+  box-shadow: 0 4px 32px rgba(168, 85, 247, 0.15);
+}
+
+[data-theme="black-glass"] .glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.7);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 }
 
 /* Glow utilities */
@@ -121,4 +214,26 @@
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+[data-theme="dark-purple"] body,
+html[data-theme="dark-purple"] body {
+  background: linear-gradient(135deg, #0f0a1e 0%, #1a0f35 40%, #2d1b5e 100%) !important;
+  background-attachment: fixed !important;
+}
+
+[data-theme="black-glass"] body,
+html[data-theme="black-glass"] body {
+  background: linear-gradient(135deg, #000000 0%, #050308 50%, #0a0510 100%) !important;
+  background-attachment: fixed !important;
+}
+
+@media (max-width: 767px) {
+  .bottom-nav-mobile {
+    display: block !important;
+  }
+
+  .main-content-area {
+    padding-bottom: 80px;
+  }
 }

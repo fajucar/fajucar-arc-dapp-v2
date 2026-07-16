@@ -15,7 +15,7 @@ import { useFarming } from '@/hooks/useFarming'
 import { ensureAllowance } from '@/lib/allowance'
 import { FAJU_FARM_ADDRESS, getPoolId, isFarmingEnabled } from '@/config/farming'
 import FajuFarmAbi from '@/abis/FajuFarm.json'
-import { formatNumber } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { FarmingSkeleton } from '@/components/ui/Skeleton'
 import { MotionButton } from '@/components/ui/MotionButton'
 import { TxStepper, type TxStep } from '@/components/ui/TxStepper'
@@ -132,15 +132,15 @@ export function FarmingPanel({ pairAddress, token0Symbol, token1Symbol, lpDecima
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div>
           <div className="text-xs text-slate-400">LP Balance</div>
-          <div className="font-medium text-white">{formatNumber(farming?.lpBalanceFormatted ?? '0', 4)}</div>
+          <div className="font-medium text-white">{formatMoney(farming?.lpBalanceFormatted ?? '0', 4)}</div>
         </div>
         <div>
           <div className="text-xs text-slate-400">Staked</div>
-          <div className="font-medium text-white">{formatNumber(farming?.stakedFormatted ?? '0', 4)}</div>
+          <div className="font-medium text-white">{formatMoney(farming?.stakedFormatted ?? '0', 4)}</div>
         </div>
         <div>
           <div className="text-xs text-slate-400">Pending FAJU</div>
-          <div className="font-medium text-cyan-400">{formatNumber(farming?.pendingFormatted ?? '0', 4)}</div>
+          <div className="font-medium text-cyan-400">{formatMoney(farming?.pendingFormatted ?? '0', 4)}</div>
         </div>
         <div>
           <div className="text-xs text-slate-400">APR</div>

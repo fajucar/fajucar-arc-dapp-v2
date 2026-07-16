@@ -3,10 +3,12 @@ import { usePublicClient, useWaitForTransactionReceipt, useSwitchChain, useReadC
 import { useArcWallet } from '@/hooks/useArcWallet'
 import { useArcWriteContract } from '@/hooks/useArcWriteContract'
 import { NetworkSwitchModal } from './NetworkSwitchModal'
+import { LinkFaucetBanner } from './LinkFaucetBanner'
 import { parseUnits, formatUnits, maxUint256, decodeErrorResult, encodeFunctionData } from 'viem'
 import { ArrowDownUp, Loader2, AlertCircle, CheckCircle2, Settings } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { notifyTxExecuted } from '@/lib/notify'
 import { ARCDEX } from '@/config/arcDex'
 import { ARC_TESTNET_TOKENS } from '@/constants/tokens'
 import { TokenSelectButton } from '@/components/TokenSelect'
@@ -14,7 +16,7 @@ import { CONSTANTS } from '@/config/constants'
 import { EURC_ALTERNATIVE, ZERO_ADDRESS } from '@/config/tokens'
 import { ensureAllowance } from '@/lib/allowance'
 import { assertAddress } from '@/lib/assertAddress'
-import { formatNumber } from '@/lib/format'
+import { formatNumber, formatMoney } from '@/lib/format'
 import { buildSwapPath, quoteSwap, simulateSwap } from '@/lib/dex/swapUtils'
 
 export type SwapDebugData = {
@@ -881,7 +883,7 @@ export function SwapInterface() {
         address: tokenFrom.address,
         abi: ERC20_ABI,
         functionName: 'approve',
-        args: [DEX_ROUTER_ADDRESS, maxUint256],
+        args: [DEX_ROUTER_ADDRESS, 340282366920938463463374607431768211455n],
       })
       toast.dismiss(toastId)
       toast.loading('Waiting for approval confirmation...', { id: 'approve-pending' })
@@ -914,7 +916,7 @@ export function SwapInterface() {
     if (routerSupportsPrecompile === false &&
         (tokenFrom.address.toLowerCase() === USDC_NATIVE_ADDRESS ||
         tokenTo?.address.toLowerCase() === USDC_NATIVE_ADDRESS)) {
-      toast.error('USDC não é compatível com swap neste Router. Use FAJU ↔ EURC, FAJU ↔ ARCX ou EURC ↔ ARCX.')
+      toast.error('USDC is not compatible with swap on this Router. Use FAJU ↔ EURC, FAJU ↔ ARCX or EURC ↔ ARCX.')
       return
     }
     if (!isConnected || !address) {
@@ -1066,7 +1068,7 @@ export function SwapInterface() {
       const pairCode = await publicClient.getCode({ address: pairAddress })
       if (!pairCode?.toLowerCase().includes(PAIR_SWAP_SELECTOR)) {
         toast.dismiss('swap-pending')
-        const msg = `Este pool ${tokenFrom.symbol}/${tokenTo.symbol} tem liquidez, mas o contrato Pair não implementa swap(). Recrie o par com o ArcDEXPair completo.`
+        const msg = `This pool ${tokenFrom.symbol}/${tokenTo.symbol} has liquidity, but the Pair contract does not implement swap(). Recreate the pair with the full ArcDEXPair.`
         setLastSimError(msg)
         toast.error(msg, { duration: 12000 })
         return
@@ -1092,7 +1094,7 @@ export function SwapInterface() {
 
       if (reserves[0] === 0n || reserves[1] === 0n) {
         toast.dismiss('swap-pending')
-        toast.error('Pool sem liquidez — adicione liquidez primeiro na aba Pools.')
+        toast.error('Pool with no liquidity — add liquidity first in the Pools tab.')
         return
       }
 
@@ -1253,7 +1255,7 @@ export function SwapInterface() {
       }
       if (routerPair && routerPair !== ZERO && routerPair.toLowerCase() !== pairAddress.toLowerCase()) {
         toast.dismiss('swap-pending')
-        const msg = 'Router enxerga outro par que a Factory. O swap vai reverter. Redeploy o Router com Factory ' + CONFIG_FACTORY.slice(0, 10) + '... (docs/DEX_DEPLOYMENT.md).'
+        const msg = 'Router sees a different pair than the Factory. The swap will revert. Redeploy the Router with Factory ' + CONFIG_FACTORY.slice(0, 10) + '... (docs/DEX_DEPLOYMENT.md).'
         setLastSimError(msg)
         setLastSimErrorDetail(`Router.pairFor = ${routerPair} | Factory.getPair par = ${pairAddress}`)
         toast.error(msg, { duration: 15000 })
@@ -1516,7 +1518,7 @@ export function SwapInterface() {
                   ? Number((amountIn * 10000n) / reserveIn) / 100
                   : 100
                 if (impactPct > 40) {
-                  toastMsg = `Impacto de preço muito alto (${impactPct.toFixed(0)}% da liquidez disponível). Reduza o valor ou adicione liquidez na aba Pools.`
+                  toastMsg = `Price impact too high (${impactPct.toFixed(0)}% of available liquidity). Reduce the amount or add liquidity in the Pools tab.`
                 } else {
                   console.warn('[Swap] Simulação inconclusiva (Arc Testnet) — price impact OK, prosseguindo.')
                   toast.loading('Enviando swap...', { id: 'swap-pending' })
@@ -1777,7 +1779,7 @@ export function SwapInterface() {
       
       // Não mostrar apenas "reverted" genérico
       if (toastMsg.toLowerCase().includes('reverted') && toastMsg.length < 50) {
-        toastMsg = `Erro: ${toastMsg}. Verifique console (F12) para detalhes completos.`
+        toastMsg = `Error: ${toastMsg}. Check console (F12) for full details.`
       }
       
       toast.error(toastMsg, { duration: 10000 })
@@ -1824,6 +1826,14 @@ export function SwapInterface() {
       toast.success('✅ Approval confirmed! Now click "2. Swap".')
     } else if (type === 'swap') {
       toast.success('✅ Swap executed successfully!')
+      if (writeHash && tokenFrom && tokenTo) {
+        notifyTxExecuted({
+          title:  'Swap executed',
+          amount: amountFrom,
+          token:  `${tokenFrom.symbol} → ${tokenTo.symbol}`,
+          txHash: writeHash,
+        })
+      }
       setAmountFrom('')
       setAmountTo('')
       if (address && publicClient && tokenFrom) {
@@ -1895,6 +1905,11 @@ export function SwapInterface() {
   const usdcBlockedByRouter = usdcInvolved && routerSupportsPrecompile === false
 
   const canSwap = !isWrongChain && !poolSemLiquidez && !excessivePriceImpact && !usdcBlockedByRouter && amountFrom && amountTo && parseFloat(amountFrom) > 0 && parseFloat(amountTo) > 0 && !isLoading
+
+  const showLinkFaucet = Boolean(address) && (
+    (tokenFrom.symbol === 'LINK' && balanceFrom < 1_000_000_000_000_000_000n) ||
+    (tokenTo?.symbol === 'LINK' && balanceTo < 1_000_000_000_000_000_000n)
+  )
   const isApproveLoading = (isPending || isConfirming) && lastWriteType === 'approve'
   const isSwapLoading = (isPending || isConfirming) && lastWriteType === 'swap'
 
@@ -1929,8 +1944,8 @@ export function SwapInterface() {
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-2">
           <AlertCircle className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
           <div className="text-xs text-amber-200/90">
-            <span className="font-medium">Pool sem liquidez.</span>
-            {' '}Adicione liquidez na aba Pools e tente novamente.
+            <span className="font-medium">Pool with no liquidity.</span>
+            {' '}Add liquidity in the Pools tab and try again.
           </div>
         </div>
       )}
@@ -1979,7 +1994,7 @@ export function SwapInterface() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} aria-hidden="true" />
                 <div className="absolute right-0 top-full mt-1 z-50 w-[calc(100vw-2rem)] max-w-[240px] min-w-[200px] rounded-xl border border-slate-600/60 bg-slate-900/95 backdrop-blur-xl p-4 shadow-xl">
-                  <div className="text-xs text-slate-400 mb-2">Tolerância de slippage</div>
+                  <div className="text-xs text-slate-400 mb-2">Slippage tolerance</div>
                   <div className="flex items-center gap-2 mb-2">
                     {[1, 2, 5, 10].map((v) => (
                       <button
@@ -2002,10 +2017,10 @@ export function SwapInterface() {
                       step="0.1"
                       className="w-20 bg-slate-800/60 border border-slate-600/60 rounded-lg px-3 py-2 text-base sm:text-sm text-white text-right focus:outline-none focus:border-cyan-500/50 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                     />
-                    <span className="text-slate-400 text-sm">% (máx 10%)</span>
+                    <span className="text-slate-400 text-sm">% (max 10%)</span>
                   </div>
                   {minReceived != null && tokenTo && (
-                    <div className="text-xs text-cyan-400/90 mt-2 font-mono">Mínimo recebido: {minReceived} {tokenTo.symbol}</div>
+                    <div className="text-xs text-cyan-400/90 mt-2 font-mono">Minimum received: {minReceived} {tokenTo.symbol}</div>
                   )}
                 </div>
               </>
@@ -2018,7 +2033,7 @@ export function SwapInterface() {
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm text-slate-400">From</label>
             <button onClick={handleMax} className="text-xs text-cyan-400/90 hover:text-cyan-300 transition-colors">
-              Balance: {formatNumber(formatUnits(balanceFrom, tokenFrom.decimals), 3)}
+              Balance: {formatMoney(formatUnits(balanceFrom, tokenFrom.decimals), 4)}
             </button>
           </div>
           <div className="flex items-center gap-4">
@@ -2061,7 +2076,7 @@ export function SwapInterface() {
             <label className="text-sm text-slate-400">To</label>
             {tokenTo && (
               <span className="text-xs text-cyan-400/90">
-                Balance: {formatNumber(formatUnits(balanceTo, tokenTo.decimals), 3)}
+                Balance: {formatMoney(formatUnits(balanceTo, tokenTo.decimals), 4)}
               </span>
             )}
           </div>
@@ -2073,7 +2088,7 @@ export function SwapInterface() {
               excludedAddress={tokenFrom.address}
               accountAddress={address}
               showBalance
-              placeholder="Selecionar"
+              placeholder="Select"
               className="shrink-0"
             />
             <div className="flex-1 min-w-0 text-right">
@@ -2092,6 +2107,8 @@ export function SwapInterface() {
           </div>
         </div>
 
+      <LinkFaucetBanner show={showLinkFaucet} address={address} />
+
       {/* Liquidez disponível */}
       {tokenTo && debugData?.pairAddress && debugData.pairAddress !== '0x0000000000000000000000000000000000000000' && (
         (() => {
@@ -2101,18 +2118,18 @@ export function SwapInterface() {
           const reserveFrom = fromIsToken0 ? r0 : r1
           const reserveTo   = fromIsToken0 ? r1 : r0
           const noLiquidity = r0 === 0n || r1 === 0n
-          const fmtFrom = formatNumber(parseFloat(formatUnits(reserveFrom, tokenFrom.decimals)), 2)
-          const fmtTo   = formatNumber(parseFloat(formatUnits(reserveTo,   tokenTo.decimals)),   2)
+          const fmtFrom = formatMoney(parseFloat(formatUnits(reserveFrom, tokenFrom.decimals)), 4)
+          const fmtTo   = formatMoney(parseFloat(formatUnits(reserveTo,   tokenTo.decimals)),   4)
           return (
             <div className={`rounded-lg px-3 py-2 text-xs flex items-center gap-2 ${noLiquidity ? 'border border-red-500/30 bg-red-500/10 text-red-300' : 'border border-slate-700/40 bg-slate-800/20 text-slate-400'}`}>
               <span className="shrink-0">{noLiquidity ? '⚠️' : '💧'}</span>
               {noLiquidity
-                ? <span>Pool sem liquidez para este par. Adicione liquidez na aba <strong className="text-white">Pools</strong> primeiro.</span>
+                ? <span>No liquidity for this pair. Add liquidity in the <strong className="text-white">Pools</strong> tab first.</span>
                 : <>
-                    <span>Liquidez: <strong className="text-slate-200">{fmtFrom} {tokenFrom.symbol}</strong> / <strong className="text-slate-200">{fmtTo} {tokenTo.symbol}</strong></span>
+                    <span>Liquidity: <strong className="text-slate-200">{fmtFrom} {tokenFrom.symbol}</strong> / <strong className="text-slate-200">{fmtTo} {tokenTo.symbol}</strong></span>
                     {priceImpact !== null && priceImpact > 2 && (
                       <span className={`ml-2 font-semibold ${priceImpact > 50 ? 'text-red-400' : priceImpact > 15 ? 'text-orange-400' : 'text-yellow-400'}`}>
-                        · Impacto: {priceImpact.toFixed(1)}%{priceImpact > 50 ? ' — reduza o valor' : priceImpact > 15 ? ' (alto)' : ''}
+                        · Impact: {priceImpact.toFixed(1)}%{priceImpact > 50 ? ' — reduce the amount' : priceImpact > 15 ? ' (high)' : ''}
                       </span>
                     )}
                   </>
@@ -2127,9 +2144,9 @@ export function SwapInterface() {
         <div className="rounded-lg border border-orange-500/40 bg-orange-500/10 p-3 flex items-start gap-2">
           <AlertCircle className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
           <div className="text-xs text-orange-200/90 space-y-1">
-            <p className="font-medium text-orange-200">USDC não é compatível com swap neste Router</p>
-            <p>O USDC é o token nativo de gas da Arc Testnet (precompile). O Router atual não suporta swap envolvendo USDC — nem como entrada nem como saída.</p>
-            <p>💡 <strong>Pares que funcionam:</strong> <strong>FAJU ↔ EURC</strong>, <strong>FAJU ↔ ARCX</strong>, <strong>EURC ↔ ARCX</strong>.</p>
+            <p className="font-medium text-orange-200">USDC is not compatible with swap on this Router</p>
+            <p>USDC is the native gas token of Arc Testnet (precompile). The current Router does not support swaps involving USDC — neither as input nor as output.</p>
+            <p>💡 <strong>Pairs that work:</strong> <strong>FAJU ↔ EURC</strong>, <strong>FAJU ↔ ARCX</strong>, <strong>EURC ↔ ARCX</strong>.</p>
           </div>
         </div>
       )}

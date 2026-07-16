@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 export function BridgeTab() {
   const handleOpenOfficialBridge = () => {
     window.open('https://testnet.bridge.arc.network', '_blank', 'noopener,noreferrer')
-    toast('Abrindo Arc Bridge oficial...', {
+    toast('Opening Arc Bridge...', {
       icon: '🌉',
       duration: 3000,
     })
@@ -24,9 +24,9 @@ export function BridgeTab() {
 
         {/* Title */}
         <div>
-          <h3 className="text-xl font-semibold text-white mb-2">Bridge em breve</h3>
+          <h3 className="text-xl font-semibold text-white mb-2">Bridge coming soon</h3>
           <p className="text-sm text-slate-400 leading-relaxed">
-            Estamos integrando o bridge oficial da Arc. Por enquanto, use o bridge oficial:
+            We're integrating the official Arc bridge. In the meantime, use the official bridge:
           </p>
         </div>
 
@@ -37,13 +37,13 @@ export function BridgeTab() {
           whileTap={{ scale: 0.98 }}
           className="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 px-6 text-sm font-bold bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white hover:opacity-90 transition-all shadow-lg shadow-purple-500/20"
         >
-          <span>Abrir Arc Bridge</span>
+          <span>Open Arc Bridge</span>
           <ExternalLink className="h-4 w-4" />
         </motion.button>
 
         {/* Additional info */}
         <div className="text-xs text-slate-500 pt-2 border-t border-slate-700/50">
-          Bridge USDC entre Arc Testnet e Ethereum Sepolia
+          Bridge USDC between Arc Testnet and Ethereum Sepolia
         </div>
       </motion.div>
     </div>

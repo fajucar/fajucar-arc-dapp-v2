@@ -114,6 +114,25 @@ function scoreTier(score: number): { label: string; color: string; glow: string 
 }
 
 // ── Data fetchers ─────────────────────────────────────────────────────────────
+
+// Real total tx count via ArcScan's dedicated /counters endpoint — the
+// /transactions endpoint is paginated at 50 items/page, so counting `items`
+// undercounts any wallet with more than one page of history.
+async function fetchTxCount(address: string): Promise<number | null> {
+  const url = `${API_BASE}/address/${address}/counters`
+  console.log('[Passport] fetch', url)
+  try {
+    const res = await fetch(url)
+    if (!res.ok) { console.error('[Passport] counters HTTP', res.status, await res.text()); return null }
+    const data = await res.json()
+    const n = Number(data.transactions_count)
+    return Number.isFinite(n) ? n : null
+  } catch (err) {
+    console.error('[Passport] counters fetch failed for', url, err)
+    return null
+  }
+}
+
 async function fetchUsdcVolume(address: string): Promise<number> {
   const url = `${API_BASE}/address/${address}/token-transfers`
   console.log('[Passport] fetch', url)
@@ -156,13 +175,17 @@ async function fetchPassport(address: string): Promise<PassportStats> {
     if (tx.to?.hash?.toLowerCase() === NFT_CONTRACT) nftsMinted++
   }
 
-  const usdcVolume = await fetchUsdcVolume(address)
+  const [usdcVolume, realTxCount] = await Promise.all([
+    fetchUsdcVolume(address),
+    fetchTxCount(address),
+  ])
 
   const firstTxDate = txs.length > 0 ? txs[txs.length - 1].timestamp : null
   const daysActive  = firstTxDate
     ? Math.max(1, Math.floor((Date.now() - new Date(firstTxDate).getTime()) / 86_400_000))
     : 0
-  const txCount = txs.length
+  // Fall back to the capped page length only if the counters endpoint failed.
+  const txCount = realTxCount ?? txs.length
   const score   = Math.round(txCount * 10 + usdcVolume * 0.1 + nftsMinted * 50 + daysActive * 5)
   return { txCount, usdcVolume, nftsMinted, daysActive, score, firstTxDate, recentTxs: txs.slice(0, 10) }
 }
@@ -201,7 +224,9 @@ async function fetchModalData(address: string): Promise<ModalData> {
     ? Math.max(1, Math.floor((Date.now() - new Date(firstTxDate).getTime()) / 86_400_000))
     : 0
 
-  const txCount         = txs.length
+  // Fall back to the capped page length only if the counters endpoint failed.
+  const realTxCount     = await fetchTxCount(address)
+  const txCount         = realTxCount ?? txs.length
   const uniqueContracts = contracts.size
   const uniqueTokens    = tokens.size
   const raw   = txCount * 2 + uniqueContracts * 20 + daysActive * 1
@@ -271,12 +296,18 @@ function PassportModal({ address, ownAddress, onClose }: PassportModalProps) {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true); setError(null); setData(null)
-    fetchModalData(address)
-      .then(d => { if (!cancelled) setData(d) })
-      .catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : t('passport.error')) })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
+
+    const load = (silent = false) => {
+      if (!silent) { setLoading(true); setError(null); setData(null) }
+      fetchModalData(address)
+        .then(d => { if (!cancelled) { setData(d); if (!silent) setError(null) } })
+        .catch(e => { if (!cancelled && !silent) setError(e instanceof Error ? e.message : t('passport.error')) })
+        .finally(() => { if (!cancelled && !silent) setLoading(false) })
+    }
+
+    load()
+    const interval = setInterval(() => load(true), 15_000)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [address])
 
   const copyAddr = () => {
@@ -473,15 +504,28 @@ export function Agents() {
   const [loading,    setLoading]    = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
-  const loadPassport = useCallback(async (addr: string) => {
+  // `silent` skips the loading/blank-state flicker — used for background polling
+  // so the count updates in place as the agent sends new transactions.
+  const loadPassport = useCallback(async (addr: string, silent = false) => {
     if (!addr) return
-    setLoading(true); setFetchError(null); setStats(null)
-    try   { setStats(await fetchPassport(addr)) }
-    catch (e) { setFetchError(e instanceof Error ? e.message : t('passport.errorLoadingData')) }
-    finally   { setLoading(false) }
+    if (!silent) { setLoading(true); setFetchError(null); setStats(null) }
+    try {
+      const next = await fetchPassport(addr)
+      setStats(next)
+      setFetchError(null)
+    } catch (e) {
+      if (!silent) setFetchError(e instanceof Error ? e.message : t('passport.errorLoadingData'))
+    } finally {
+      if (!silent) setLoading(false)
+    }
   }, [])
 
-  useEffect(() => { if (activeAddr) loadPassport(activeAddr) }, [activeAddr, loadPassport])
+  useEffect(() => {
+    if (!activeAddr) return
+    loadPassport(activeAddr)
+    const interval = setInterval(() => loadPassport(activeAddr, true), 15_000)
+    return () => clearInterval(interval)
+  }, [activeAddr, loadPassport])
 
   const tier = stats ? scoreTier(stats.score) : null
 

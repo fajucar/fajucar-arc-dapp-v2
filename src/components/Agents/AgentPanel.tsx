@@ -153,7 +153,7 @@ function WithdrawalSection({
     } catch (err: any) {
       const msg = String(err?.message ?? err)
       if (!msg.toLowerCase().includes('cancel') && !msg.toLowerCase().includes('dismiss')) {
-        toast.error('Erro ao conectar carteira')
+        toast.error('Error connecting wallet')
       }
     } finally {
       setLinking(false)
@@ -165,11 +165,11 @@ function WithdrawalSection({
     setSending(true)
     try {
       await sendUsdc(withdrawalAddress, amount)
-      toast.success(`${amount} USDC enviados com sucesso!`)
+      toast.success(`${amount} USDC sent successfully!`)
       setAmount('')
       setConfirmStep(false)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao sacar')
+      toast.error(e instanceof Error ? e.message : 'Error withdrawing')
     } finally {
       setSending(false)
     }
@@ -179,34 +179,34 @@ function WithdrawalSection({
     <div className="space-y-2">
       <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wide">
         <Wallet className="h-3.5 w-3.5" />
-        Carteira de Saque
+        Withdrawal Wallet
       </label>
 
-      {/* ── ESTADO: carteira verificada via Privy ── */}
+      {/* ── STATE: wallet verified via Privy ── */}
       {isVerified && !showManual ? (
         <div className="flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/8 px-3 py-2.5">
           <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-mono font-semibold text-white">{truncate(withdrawalAddress)}</p>
-            <p className="text-[10px] text-emerald-400/80 mt-0.5">Verificada via Privy</p>
+            <p className="text-[10px] text-emerald-400/80 mt-0.5">Verified via Privy</p>
           </div>
           <button
             onClick={() => { setWithdrawalAddress(''); setManualMode(false) }}
             className="text-[11px] font-medium text-slate-400 hover:text-slate-200 transition-colors"
           >
-            Trocar
+            Change
           </button>
         </div>
       ) : showManual ? (
-        /* ── ESTADO: modo manual (fallback) ── */
+        /* ── STATE: manual mode (fallback) ── */
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-500">Colar endereço manualmente</span>
+            <span className="text-[11px] text-slate-500">Paste address manually</span>
             <button
               onClick={() => { setManualMode(false); setWithdrawalAddress('') }}
               className="text-[11px] text-cyan-400 hover:text-cyan-300 transition-colors"
             >
-              ← Voltar
+              ← Back
             </button>
           </div>
           <input
@@ -225,18 +225,18 @@ function WithdrawalSection({
           {manualAddrError && (
             <p className="flex items-center gap-1 text-[11px] text-red-400">
               <AlertCircle className="h-3 w-3 shrink-0" />
-              Formato inválido — 0x + 40 hex
+              Invalid format — 0x + 40 hex
             </p>
           )}
           {manualAddrValid && (
             <p className="flex items-center gap-1 text-[11px] text-slate-500">
               <CheckCircle2 className="h-3 w-3 shrink-0" />
-              Endereço válido (não verificado)
+              Valid address (not verified)
             </p>
           )}
         </div>
       ) : (
-        /* ── ESTADO: sem carteira — mostrar botão de conexão ── */
+        /* ── STATE: no wallet — show connect button ── */
         <div className="space-y-2">
           <button
             onClick={handleLinkWallet}
@@ -244,9 +244,9 @@ function WithdrawalSection({
             className="w-full flex items-center justify-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2.5 text-sm font-semibold text-cyan-300 hover:bg-cyan-500/20 disabled:opacity-50 transition-all"
           >
             {linking ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Conectando...</>
+              <><Loader2 className="h-4 w-4 animate-spin" /> Connecting...</>
             ) : (
-              <><Wallet className="h-4 w-4" /> Conectar carteira de saque</>
+              <><Wallet className="h-4 w-4" /> Connect withdrawal wallet</>
             )}
           </button>
           <button
@@ -255,18 +255,18 @@ function WithdrawalSection({
             className="w-full flex items-center justify-center gap-2 rounded-xl border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-sm font-semibold text-amber-300 hover:bg-amber-500/20 transition-all"
           >
             <Copy className="h-4 w-4" />
-            Colar endereço manualmente
+            Paste address manually
           </button>
         </div>
       )}
 
-      {/* ── Valor + botão Sacar (aparece quando destino está definido) ── */}
+      {/* ── Amount + Withdraw button (appears when destination is set) ── */}
       {hasValidDest && (
         <div className="flex gap-2 pt-1">
           <input
             type="text"
             inputMode="decimal"
-            placeholder="Valor USDC"
+            placeholder="USDC amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/,/g, '.'))}
             className="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-base sm:text-sm text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
@@ -277,12 +277,12 @@ function WithdrawalSection({
             className="flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 min-h-[44px] text-xs font-semibold text-amber-300 hover:bg-amber-500/20 disabled:opacity-40 transition-all shrink-0"
           >
             <Send className="h-3.5 w-3.5" />
-            Sacar
+            Withdraw
           </button>
         </div>
       )}
 
-      {/* ── Diálogo de confirmação ── */}
+      {/* ── Confirmation dialog ── */}
       <AnimatePresence>
         {confirmStep && (
           <motion.div
@@ -299,10 +299,10 @@ function WithdrawalSection({
               className="w-full max-w-sm rounded-2xl border border-red-500/30 bg-[#0d0d1e] p-5 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-sm font-bold text-white mb-2">Confirmar saque</h3>
+              <h3 className="text-sm font-bold text-white mb-2">Confirm withdrawal</h3>
               <p className="text-xs text-slate-400 mb-2">
-                Enviando{' '}
-                <span className="text-white font-semibold">{amount} USDC</span> para:
+                Sending{' '}
+                <span className="text-white font-semibold">{amount} USDC</span> to:
               </p>
               <div className="rounded-lg bg-slate-800/70 px-3 py-2 mb-3 break-all font-mono text-xs text-amber-300">
                 {withdrawalAddress}
@@ -310,26 +310,26 @@ function WithdrawalSection({
               {isVerified && (
                 <p className="flex items-center gap-1 text-[11px] text-emerald-400 mb-3">
                   <CheckCircle2 className="h-3 w-3 shrink-0" />
-                  Carteira verificada via Privy
+                  Wallet verified via Privy
                 </p>
               )}
               <p className="flex items-start gap-1.5 text-[11px] text-red-400 mb-4">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                Ação irreversível. Verifique o endereço.
+                Irreversible action. Double-check the address.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmStep(false)}
                   className="flex-1 rounded-xl border border-slate-600 py-2 text-sm text-slate-300 hover:bg-slate-800 transition-colors"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   onClick={handleSend}
                   disabled={sending}
                   className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-red-500/20 border border-red-500/40 py-2 text-sm font-semibold text-red-300 hover:bg-red-500/30 disabled:opacity-50 transition-colors"
                 >
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : '✓ Confirmar'}
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : '✓ Confirm'}
                 </button>
               </div>
             </motion.div>
@@ -396,11 +396,11 @@ function SocialLinksInModal() {
     setLinkingId(id)
     try {
       await Promise.resolve(fn())
-      toast.success('Conta vinculada!')
+      toast.success('Account linked!')
     } catch (err: any) {
       const msg = String(err?.message ?? err)
       if (!msg.toLowerCase().includes('cancel') && !msg.toLowerCase().includes('dismiss')) {
-        toast.error('Erro ao vincular')
+        toast.error('Error linking account')
       }
     } finally {
       setLinkingId(null)
@@ -410,7 +410,7 @@ function SocialLinksInModal() {
   return (
     <div className="space-y-2">
       <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">
-        Redes Vinculadas
+        Linked Accounts
       </label>
 
       <div className="space-y-1.5">
@@ -440,8 +440,8 @@ function SocialLinksInModal() {
                   className="ml-auto flex items-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/10 px-2.5 py-1 text-[11px] font-semibold text-purple-300 hover:bg-purple-500/20 disabled:opacity-50 transition-all"
                 >
                   {isLinking
-                    ? <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Vinculando…</>
-                    : <><Link2 className="h-2.5 w-2.5" /> Vincular</>}
+                    ? <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Linking…</>
+                    : <><Link2 className="h-2.5 w-2.5" /> Link</>}
                 </button>
               )}
             </div>
@@ -450,7 +450,7 @@ function SocialLinksInModal() {
       </div>
 
       <p className="text-[10px] text-slate-600 leading-relaxed">
-        Vincular ≠ novo login. Todas as redes compartilham a mesma carteira embedded.
+        Linking ≠ new login. All accounts share the same embedded wallet.
       </p>
     </div>
   )
@@ -551,7 +551,7 @@ export function PersonalizarModal({ profile, onSave, onClose }: ModalProps) {
         >
           <div className="w-10 h-1 rounded-full bg-slate-600 mb-2" />
           <div className="flex items-center justify-between w-full px-5">
-            <h2 className="text-base font-bold text-white">Personalizar Agente</h2>
+            <h2 className="text-base font-bold text-white">Customize Agent</h2>
             <button
               onClick={onClose}
               className="rounded-lg p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -581,10 +581,10 @@ export function PersonalizarModal({ profile, onSave, onClose }: ModalProps) {
                 />
               </div>
 
-              {/* Nome do agente */}
+              {/* Agent name */}
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                  Nome do agente
+                  Agent name
                 </label>
                 <input
                   type="text"
@@ -594,7 +594,7 @@ export function PersonalizarModal({ profile, onSave, onClose }: ModalProps) {
                 />
               </div>
 
-              {/* Carteira de saque */}
+              {/* Withdrawal wallet */}
               <WithdrawalSection
                 address={address}
                 withdrawalAddress={withdrawalAddress}
@@ -606,10 +606,10 @@ export function PersonalizarModal({ profile, onSave, onClose }: ModalProps) {
             {/* ── RIGHT COLUMN ── */}
             <div className="space-y-4">
 
-              {/* Personalidade */}
+              {/* Personality */}
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                  Personalidade
+                  Personality
                 </label>
                 <div className="space-y-2">
                   {PERSONALITY_OPTIONS.map((opt) => (
@@ -637,7 +637,7 @@ export function PersonalizarModal({ profile, onSave, onClose }: ModalProps) {
                 </div>
               </div>
 
-              {/* Redes vinculadas */}
+              {/* Linked accounts */}
               <SocialLinksInModal />
             </div>
           </div>
@@ -649,8 +649,8 @@ export function PersonalizarModal({ profile, onSave, onClose }: ModalProps) {
             className="mt-5 w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3 text-sm font-bold text-white hover:opacity-90 disabled:opacity-60 transition-all shadow-lg shadow-cyan-500/20"
           >
             {saving
-              ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</>
-              : <><Check className="h-4 w-4" /> Salvar</>}
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
+              : <><Check className="h-4 w-4" /> Save</>}
           </button>
         </div>
       </motion.div>
@@ -665,7 +665,7 @@ export function AgentPanel() {
   const { address, isConnected } = useArcWallet()
   const [modalOpen, setModalOpen] = useState(false)
   const [profile, setProfile] = useState<AgentLocalProfile>({
-    name: 'Meu Agente',
+    name: 'My Agent',
     personality: 'explorer',
     imageUrl: '',
   })
@@ -709,18 +709,18 @@ export function AgentPanel() {
                   {personalityOpt.emoji} {personalityOpt.label}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-0.5 text-xs font-semibold text-emerald-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Ativo
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Active
                 </span>
               </div>
               {!isConnected && (
-                <p className="mt-1.5 text-xs text-slate-500">Conecte sua carteira para salvar o perfil</p>
+                <p className="mt-1.5 text-xs text-slate-500">Connect your wallet to save the profile</p>
               )}
             </div>
             <button
               onClick={() => setModalOpen(true)}
               className="flex-shrink-0 flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400/50 transition-all"
             >
-              <Sparkles className="h-4 w-4" /> Personalizar agente
+              <Sparkles className="h-4 w-4" /> Customize agent
             </button>
           </div>
         </motion.div>
@@ -728,7 +728,7 @@ export function AgentPanel() {
         <LinkedAccountsSection />
 
         <motion.div {...fadeInUp} transition={{ ...fadeInUp.transition, delay: 0.06 }}>
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Capacidades</h3>
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-slate-500">Capabilities</h3>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {CAPABILITIES.map((cap) => (
               <div
@@ -745,8 +745,8 @@ export function AgentPanel() {
                   <div className="text-[11px] text-slate-400 leading-4 mt-0.5">{cap.desc}</div>
                 </div>
                 {cap.active
-                  ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400">✅ Ativo</span>
-                  : <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500">🔜 Em breve</span>}
+                  ? <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400">✅ Active</span>
+                  : <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500">🔜 Coming soon</span>}
               </div>
             ))}
           </div>

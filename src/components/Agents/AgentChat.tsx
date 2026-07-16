@@ -13,11 +13,14 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, Loader2, Bot } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { usePublicClient } from 'wagmi'
+import { usePrivy } from '@privy-io/react-auth'
 import { parseUnits, formatUnits } from 'viem'
 import { useArcWallet } from '@/hooks/useArcWallet'
+import { useScheduledPaymentSigner } from '@/hooks/useScheduledPaymentSigner'
 import { useArcWriteContract } from '@/hooks/useArcWriteContract'
 import { ARC_TESTNET_TOKENS } from '@/config/tokens.arc-testnet'
 import { ARCDEX } from '@/config/arcDex'
+import { notifyTxExecuted } from '@/lib/notify'
 import { ConfirmationCard } from './ConfirmationCard'
 import type { Personality } from './agentConstants'
 
@@ -30,6 +33,28 @@ type ContentBlock    = TextBlock | ToolUseBlock | ToolResultBlock
 type ApiMessage = {
   role:    'user' | 'assistant'
   content: string | ContentBlock[]
+}
+
+// ── User's IANA timezone (e.g. "America/Sao_Paulo", "Asia/Tokyo") ────────────
+// Detected once from the browser and sent with every chat request so the
+// backend can interpret relative/local times ("tomorrow at 3pm") correctly
+// for whoever is testing, instead of assuming any specific timezone.
+const USER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+// ── Extract the user's email from Privy's user object, if any ────────────────
+// Sent alongside privyUserId (the Privy DID) so the backend can resolve the
+// Circle automation wallet by email — the identity that's actually stable
+// across login methods. The Privy DID isn't: the same person can get a
+// different one per social network unless the accounts were explicitly
+// linked, which is exactly how one tester ended up with two separate Circle
+// wallets (one funded, one not) for the same physical account.
+function getPrivyEmail(user: ReturnType<typeof usePrivy>['user']): string | undefined {
+  const googleAccount = user?.linkedAccounts?.find((a) => a.type === 'google_oauth') as { email?: string } | undefined
+  return (
+    user?.google?.email ??
+    googleAccount?.email ??
+    (user as { email?: { address?: string } } | null)?.email?.address
+  )
 }
 
 // ── Token USD prices (hardcoded; replace with live feed later) ───────────────
@@ -164,6 +189,25 @@ function token(sym: string) {
   return ARC_TESTNET_TOKENS.find(t => t.symbol.toLowerCase() === sym.toLowerCase())
 }
 
+// ── Build the global toast payload for a confirmed chat-triggered action ─────
+const TOOL_NOTIFICATION_TITLE: Record<string, string> = {
+  sendUSDC: 'USDC sent',
+  swap:     'Swap executed',
+  mintNFT:  'NFT minted',
+  faucet:   'Faucet claim executed',
+}
+
+function buildNotification(tool: string, params: Record<string, unknown>, txHash: string) {
+  switch (tool) {
+    case 'sendUSDC':
+      return { title: TOOL_NOTIFICATION_TITLE.sendUSDC, amount: params.amount as string, token: 'USDC', recipient: params.to as string, txHash }
+    case 'swap':
+      return { title: TOOL_NOTIFICATION_TITLE.swap, amount: params.amount as string, token: params.tokenIn as string, txHash }
+    default:
+      return { title: TOOL_NOTIFICATION_TITLE[tool] ?? 'Transaction executed', txHash }
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface AgentChatProps {
@@ -176,6 +220,8 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
   const { address } = useArcWallet()
   const { writeContractAsync }        = useArcWriteContract()
   const publicClient                  = usePublicClient()
+  const { user: privyUser }           = usePrivy()
+  const { grantSigner }               = useScheduledPaymentSigner()
 
   const [displayMessages,   setDisplayMessages]   = useState<DisplayMessage[]>([])
   const [apiMessages,       setApiMessages]       = useState<ApiMessage[]>([])
@@ -218,6 +264,54 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
   const pushDisplay = useCallback((msg: DisplayMessage) =>
     setDisplayMessages(prev => [...prev, msg]), [])
 
+  // Surface scheduled-payment outcomes directly in the chat, not just as a
+  // global toast — the scheduler (server/scheduler.mjs) executes on a cron
+  // with no button click to react to, so this is how the conversation
+  // itself learns about it while the chat panel is open. Own SSE
+  // connection (separate from the global toast one in useTransactionNotifications)
+  // so this can inject into this component's own message list.
+  useEffect(() => {
+    if (!effectiveAddr) return
+    const source = new EventSource(`http://localhost:3002/api/notifications/stream?address=${effectiveAddr}`)
+
+    source.onmessage = (event) => {
+      let payload: {
+        type: 'payment-pending' | 'payment-executed' | 'payment-failed'
+        recipient: string
+        amount: string
+        token: string
+        txHash?: string
+        error?: string
+      }
+      try {
+        payload = JSON.parse(event.data)
+      } catch {
+        return
+      }
+
+      const shortRecipient = payload.recipient
+        ? `${payload.recipient.slice(0, 6)}...${payload.recipient.slice(-4)}`
+        : payload.recipient
+
+      if (payload.type === 'payment-executed' && payload.txHash) {
+        pushDisplay({
+          kind:   'tx-success',
+          text:   t('agentChat.scheduledPaymentExecuted', { amount: payload.amount, token: payload.token, address: shortRecipient }),
+          txHash: payload.txHash,
+        })
+      } else if (payload.type === 'payment-failed') {
+        pushDisplay({
+          kind:    'result',
+          text:    t('agentChat.scheduledPaymentFailed', { amount: payload.amount, token: payload.token, address: shortRecipient, error: payload.error }),
+          isError: true,
+        })
+      }
+    }
+
+    source.onerror = () => {} // EventSource auto-reconnects; nothing to do here
+
+    return () => source.close()
+  }, [effectiveAddr, pushDisplay, t])
 
   // ── Execute on-chain action after confirmation ────────────────────────────
   const executeAction = useCallback(async (
@@ -241,7 +335,7 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
               functionName: 'balanceOf', args: [addr as `0x${string}`],
             }) as bigint
             lines.push(`${s}: ${parseFloat(formatUnits(raw, t.decimals)).toFixed(4)}`)
-          } catch { lines.push(`${s}: erro ao ler`) }
+          } catch { lines.push(`${s}: error reading`) }
         }
         return { text: lines.join('\n') }
       }
@@ -249,17 +343,20 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
       case 'sendUSDC': {
         const to     = params.to     as string
         const amount = params.amount as string
-        const usdcToken = token('USDC')
-        if (!usdcToken) throw new Error(t('agentChat.usdcNotFound'))
+        // Token is now optional (defaults to USDC). A "send" is ALWAYS a plain
+        // ERC-20 transfer of the requested token — never a swap.
+        const symbol    = ((params.token as string) || 'USDC').toUpperCase()
+        const sendToken = token(symbol)
+        if (!sendToken) throw new Error(t('agentChat.tokenNotFound', `Token ${symbol} não encontrado.`))
         // Use writeContractAsync (not sendUsdc) so we get the txHash back
         const txHash = await writeContractAsync({
-          address:      usdcToken.address,
-          abi:          USDC_TRANSFER_ABI,
+          address:      sendToken.address,
+          abi:          USDC_TRANSFER_ABI, // standard ERC-20 transfer(address,uint256)
           functionName: 'transfer',
-          args:         [to as `0x${string}`, parseUnits(amount, usdcToken.decimals)],
+          args:         [to as `0x${string}`, parseUnits(amount, sendToken.decimals)],
         })
         return {
-          text:   t('agentChat.sendSuccess', { amount, address: `${to.slice(0, 6)}…${to.slice(-4)}` }),
+          text:   `${amount} ${symbol} enviados para ${to.slice(0, 6)}…${to.slice(-4)}! 🚀`,
           txHash,
         }
       }
@@ -337,6 +434,16 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
       const effectiveWallet = address ?? walletAddress
       const agentConfig = JSON.parse(localStorage.getItem(`agent_${effectiveWallet}`) || '{}')
       const agentName   = agentConfig.name || 'Agente FajuARC'
+      const effectiveEmail = getPrivyEmail(privyUser)
+
+      // Debug visibility into which identity is actually being sent — this is
+      // exactly the kind of mismatch (DID vs. email, pointing at different
+      // Circle wallets) that's easy to miss silently.
+      console.log('[AgentChat] wallet identity for this request:', {
+        walletAddress: effectiveWallet,
+        privyUserId:   privyUser?.id,
+        privyEmail:    effectiveEmail ?? '(none — falling back to DID for Circle wallet lookup)',
+      })
 
       const resp = await fetch('http://localhost:3002/api/agent/chat', {
         method:  'POST',
@@ -347,6 +454,9 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
           walletAddress:     effectiveWallet,
           withdrawalAddress: withdrawalAddress ?? undefined,
           agentName,
+          privyUserId:       privyUser?.id,
+          privyEmail:        effectiveEmail,
+          timezone:          USER_TIMEZONE,
         }),
       })
       if (!resp.ok) {
@@ -393,13 +503,29 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
           { role: 'assistant', content: data.message },
         ])
         pushDisplay({ kind: 'agent', text: data.message })
+
+        // Scheduled payment via the user's own wallet: the backend asks us to
+        // obtain one-time consent so it can sign future payments headlessly.
+        // Fire the Privy consent popup; safe to call even if already granted.
+        if (data.needsSessionSigner && data.sessionSignerAddress) {
+          try {
+            console.log('[SessionSigner] requesting consent for', data.sessionSignerAddress)
+            await grantSigner(data.sessionSignerAddress as string)
+            console.log('[SessionSigner] consent granted OK')
+            pushDisplay({ kind: 'agent', text: t('agentChat.sessionSignerGranted', 'Pronto! Autorização concedida — seus pagamentos agendados serão enviados automaticamente da sua carteira. 🔐') })
+          } catch (err) {
+            console.error('[SessionSigner] grant failed:', err)
+            const detail = err instanceof Error ? err.message : String(err)
+            pushDisplay({ kind: 'agent', text: `A autorização não foi concluída (${detail}). O pagamento ficará agendado, mas você precisará autorizar para que ele seja enviado automaticamente.` })
+          }
+        }
       }
     } catch (err) {
       pushDisplay({ kind: 'agent', text: t('agentChat.connectionError') })
     } finally {
       setLoading(false)
     }
-  }, [personality, address, walletAddress, pushDisplay, t])
+  }, [personality, address, walletAddress, privyUser, pushDisplay, t])
 
   // ── Handle user submit ────────────────────────────────────────────────────
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -450,6 +576,7 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
     // on-chain tx with hash → success card with explorer link
     } else if (!isError && txHash) {
       pushDisplay({ kind: 'tx-success', text: resultText, txHash })
+      notifyTxExecuted(buildNotification(pending.tool, pending.params, txHash))
     } else {
       pushDisplay({ kind: 'result', text: resultText, isError })
     }
@@ -466,7 +593,16 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
     }
     const updated = [...apiMessages, toolResult]
     setApiMessages(updated)
-    await sendMessage(updated)
+
+    // getBalance is already fully resolved client-side by the balance card
+    // above — skip the follow-up request. Sending it lets the model decide
+    // to call getBalance again (tool_choice is 'auto'), which re-opens a
+    // confirmation card and loops the balance card indefinitely.
+    if (pending.tool === 'getBalance') {
+      setLoading(false)
+    } else {
+      await sendMessage(updated)
+    }
   }, [apiMessages, executeAction, pushDisplay, sendMessage])
 
   const handleCancel = useCallback(() => {

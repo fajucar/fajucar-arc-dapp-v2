@@ -1,0 +1,13 @@
+{
+  "did:privy:cmp2ori6o004h0cl9jqgatwuh": {
+    "address": "0x0d60861b4d6919b956b10c226f85d7456d9d2114",
+    "walletId": "9b122946-dd7c-5ab7-8288-bc5b392f4c83",
+    "createdAt": "2026-05-14T14:56:07.820Z"
+  },
+  "google:105373485993566209588": {
+    "address": "0xfa09e25016e8ab4325cee2da7513d8a8ffc65aaa",
+    "walletId": "05bf6b47-a96d-5aa5-b732-c6f7fa2926c2",
+    "email": "fajucar@gmail.com",
+    "createdAt": "2026-05-14T22:58:58.758Z"
+  }
+}

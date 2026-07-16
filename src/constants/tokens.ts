@@ -59,6 +59,14 @@ export const ARC_TESTNET_TOKENS = [
     flag: '🟠',
     logo: '🟠',
   },
+  {
+    symbol: 'LINK',
+    name: 'ChainLink Token',
+    address: '0x3F1f176e347235858DD6Db905DDBA09Eaf25478a' as `0x${string}`,
+    decimals: 18,
+    flag: '🔗',
+    logo: '🔗',
+  },
 ] as const
 
 export type ArcTestnetToken = (typeof ARC_TESTNET_TOKENS)[number]

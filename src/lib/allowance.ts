@@ -54,7 +54,7 @@ export async function ensureAllowance(
     address: token,
     abi: ERC20_ABI,
     functionName: 'approve',
-    args: [spender, maxUint256],
+    args: [spender, 340282366920938463463374607431768211455n],
   })
   await publicClient.waitForTransactionReceipt({ hash })
 }

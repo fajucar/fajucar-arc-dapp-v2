@@ -15,7 +15,7 @@ import { useArcWriteContract } from '@/hooks/useArcWriteContract'
 import { useArcWallet } from '@/hooks/useArcWallet'
 import { parseUnits, formatUnits } from 'viem'
 import { toast } from 'react-hot-toast'
-import { formatNumber } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 
 // LiquidityHelper oficial: addLiquidity(pair, tokenA, tokenB, amountA, amountB)
 const LIQUIDITY_HELPER_ABI = [
@@ -102,7 +102,7 @@ export function ArcDexTestPool() {
     setError(null)
     try {
       if (!publicClient) {
-        throw new Error('Public client não disponível')
+        throw new Error('Public client not available')
       }
       // Par oficial USDC/EURC na Arc Testnet
       const pairState = await readPairState(ARCDEX.pair, publicClient)
@@ -145,12 +145,12 @@ export function ArcDexTestPool() {
 
   const handleAddLiquidity = async () => {
     if (!state || !address || !publicClient || !isConnected) {
-      toast.error('Conecte sua carteira primeiro')
+      toast.error('Connect your wallet first')
       return
     }
 
     if (!amount0 || !amount1 || parseFloat(amount0) <= 0 || parseFloat(amount1) <= 0) {
-      toast.error('Informe valores válidos para ambos os tokens')
+      toast.error('Enter valid amounts for both tokens')
       return
     }
 
@@ -183,20 +183,20 @@ export function ArcDexTestPool() {
       ])
 
       if (balance0 < amount0Wei) {
-        throw new Error(`Saldo insuficiente de ${state.token0.symbol}. Necessário: ${amount0}, Disponível: ${formatUnits(balance0, decimals0)}`)
+        throw new Error(`Insufficient ${state.token0.symbol} balance. Required: ${amount0}, Available: ${formatUnits(balance0, decimals0)}`)
       }
       if (balance1 < amount1Wei) {
-        throw new Error(`Saldo insuficiente de ${state.token1.symbol}. Necessário: ${amount1}, Disponível: ${formatUnits(balance1, decimals1)}`)
+        throw new Error(`Insufficient ${state.token1.symbol} balance. Required: ${amount1}, Available: ${formatUnits(balance1, decimals1)}`)
       }
 
-      toast.loading(`Aprovando ${state.token0.symbol}...`, { id: 'approve0' })
+      toast.loading(`Approving ${state.token0.symbol}...`, { id: 'approve0' })
       await ensureAllowance(publicClient, writeOpts, token0Addr, address, ARCDEX.liquidityHelper, amount0Wei)
       toast.dismiss('approve0')
-      toast.loading(`Aprovando ${state.token1.symbol}...`, { id: 'approve1' })
+      toast.loading(`Approving ${state.token1.symbol}...`, { id: 'approve1' })
       await ensureAllowance(publicClient, writeOpts, token1Addr, address, ARCDEX.liquidityHelper, amount1Wei)
       toast.dismiss('approve1')
 
-      toast.loading('Adicionando liquidez...', { id: 'addLiq' })
+      toast.loading('Adding liquidity...', { id: 'addLiq' })
       const hash = await writeContract({
         address: ARCDEX.liquidityHelper,
         abi: LIQUIDITY_HELPER_ABI,
@@ -209,9 +209,9 @@ export function ArcDexTestPool() {
       toast.success(
         () => (
           <span>
-            Liquidez adicionada.{' '}
+            Liquidity added.{' '}
             <a href={txUrl} target="_blank" rel="noopener noreferrer" className="underline font-medium">
-              Ver no {ARCDEX.explorerName}
+              View on {ARCDEX.explorerName}
             </a>
           </span>
         ),
@@ -223,7 +223,7 @@ export function ArcDexTestPool() {
       await loadPairState()
     } catch (err: any) {
       toast.dismiss()
-      const reason = err?.shortMessage || err?.message || 'Erro ao adicionar liquidez'
+      const reason = err?.shortMessage || err?.message || 'Error adding liquidity'
       toast.error(reason)
       console.error('Error adding liquidity:', err)
     } finally {
@@ -248,13 +248,13 @@ export function ArcDexTestPool() {
               className="flex items-center gap-2 px-4 py-2 rounded-xl border border-cyan-500/40 bg-slate-800/60 text-cyan-300 hover:bg-slate-800/80 hover:border-cyan-500/50 hover:shadow-[0_0_12px_rgba(34,211,238,0.1)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Atualizar
+              Refresh
             </button>
           </div>
 
           {isWrongChain && (
             <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-200 text-sm">
-              Conecte-se à <strong>Arc Testnet</strong> (Chain ID {ARCDEX.chainId}) para ver e adicionar liquidez.
+              Connect to <strong>Arc Testnet</strong> (Chain ID {ARCDEX.chainId}) to view and add liquidity.
             </div>
           )}
 
@@ -264,10 +264,10 @@ export function ArcDexTestPool() {
             {state && (
               <div className="mb-6">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <label className="text-xs text-slate-400">Par oficial USDC/EURC</label>
+                  <label className="text-xs text-slate-400">Official USDC/EURC pair</label>
                   {BigInt(state.reserve0) > 0n && BigInt(state.reserve1) > 0n && (
                     <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/40">
-                      Pool Ativo
+                      Active Pool
                     </span>
                   )}
                 </div>
@@ -280,16 +280,16 @@ export function ArcDexTestPool() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-cyan-400 mt-1"
                 >
-                  Ver no {ARCDEX.explorerName}
+                  View on {ARCDEX.explorerName}
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
             )}
-            
+
             {/* Token Addresses Info */}
             {state && (
               <div className="mb-4 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-                <div className="text-xs text-slate-400 mb-2">Tokens do par (ERC20):</div>
+                <div className="text-xs text-slate-400 mb-2">Pair tokens (ERC20):</div>
                 <div className="text-xs font-mono space-y-1">
                   <div>USDC: <span className="text-cyan-400">{ARCDEX.usdc}</span></div>
                   <div>EURC: <span className="text-cyan-400">{ARCDEX.eurc}</span></div>
@@ -301,7 +301,7 @@ export function ArcDexTestPool() {
             {loading && (
               <div className="flex items-center gap-2 text-slate-400 mb-4">
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                <span>Carregando informações do par...</span>
+                <span>Loading pair information...</span>
               </div>
             )}
 
@@ -311,7 +311,7 @@ export function ArcDexTestPool() {
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <div className="text-sm font-semibold text-red-400 mb-1">Erro</div>
+                    <div className="text-sm font-semibold text-red-400 mb-1">Error</div>
                     <div className="text-xs text-red-300">{error}</div>
                   </div>
                 </div>
@@ -323,7 +323,7 @@ export function ArcDexTestPool() {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Token 0 (par)</label>
+                    <label className="text-xs text-slate-400 mb-1 block">Token 0 (pair)</label>
                     <div className="text-sm text-white font-mono break-all">
                       <span className="text-cyan-400 font-semibold">{state.token0.symbol}</span>
                       {state.token0.name && (
@@ -333,7 +333,7 @@ export function ArcDexTestPool() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Token 1 (par)</label>
+                    <label className="text-xs text-slate-400 mb-1 block">Token 1 (pair)</label>
                     <div className="text-sm text-white font-mono break-all">
                       <span className="text-cyan-400 font-semibold">{state.token1.symbol}</span>
                       {state.token1.name && (
@@ -347,19 +347,19 @@ export function ArcDexTestPool() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-slate-400 mb-1 block">
-                      Reserva 0 ({state.token0.symbol})
+                      Reserve 0 ({state.token0.symbol})
                     </label>
                     <div className="text-lg text-cyan-400 font-mono">
-                      {formatNumber(state.reserve0Formatted, 3)}
+                      {formatMoney(state.reserve0Formatted, 4)}
                     </div>
                     <div className="text-xs text-slate-500 mt-1">Raw: {state.reserve0}</div>
                   </div>
                   <div>
                     <label className="text-xs text-slate-400 mb-1 block">
-                      Reserva 1 ({state.token1.symbol})
+                      Reserve 1 ({state.token1.symbol})
                     </label>
                     <div className="text-lg text-cyan-400 font-mono">
-                      {formatNumber(state.reserve1Formatted, 3)}
+                      {formatMoney(state.reserve1Formatted, 4)}
                     </div>
                     <div className="text-xs text-slate-500 mt-1">Raw: {state.reserve1}</div>
                   </div>
@@ -367,14 +367,14 @@ export function ArcDexTestPool() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Supply Total (LP)</label>
+                    <label className="text-xs text-slate-400 mb-1 block">Total Supply (LP)</label>
                     <div className="text-sm text-white font-mono">
-                      {formatNumber(state.totalSupplyFormatted, 3)}
+                      {formatMoney(state.totalSupplyFormatted, 4)}
                     </div>
                     <div className="text-xs text-slate-500 mt-1">Raw: {state.totalSupply}</div>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Última atualização</label>
+                    <label className="text-xs text-slate-400 mb-1 block">Last updated</label>
                     <div className="text-sm text-white">
                       {new Date(state.timestamp * 1000).toLocaleString()}
                     </div>
@@ -391,16 +391,16 @@ export function ArcDexTestPool() {
             <div className="bg-slate-900/60 backdrop-blur-xl border border-cyan-500/20 rounded-lg p-6">
               <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <Plus className="h-5 w-5" />
-                Adicionar Liquidez
+                Add Liquidity
               </h2>
 
               <div className="space-y-4">
                 <div>
                   <label className="text-xs text-slate-400 mb-1 block">
-                    Valor em {state.token0.symbol}
+                    Amount in {state.token0.symbol}
                     {balances && (
                       <span className="text-slate-500 ml-2">
-                        (Saldo: {formatNumber(formatUnits(balances.token0, state.token0.decimals), 3)})
+                        (Balance: {formatMoney(formatUnits(balances.token0, state.token0.decimals), 4)})
                       </span>
                     )}
                   </label>
@@ -415,10 +415,10 @@ export function ArcDexTestPool() {
 
                 <div>
                   <label className="text-xs text-slate-400 mb-1 block">
-                    Valor em {state.token1.symbol}
+                    Amount in {state.token1.symbol}
                     {balances && (
                       <span className="text-slate-500 ml-2">
-                        (Saldo: {formatNumber(formatUnits(balances.token1, state.token1.decimals), 3)})
+                        (Balance: {formatMoney(formatUnits(balances.token1, state.token1.decimals), 4)})
                       </span>
                     )}
                   </label>
@@ -439,12 +439,12 @@ export function ArcDexTestPool() {
                   {addingLiquidity || isConfirming ? (
                     <>
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>Processando...</span>
+                      <span>Processing...</span>
                     </>
                   ) : (
                     <>
                       <Plus className="h-5 w-5" />
-                      <span>Adicionar Liquidez</span>
+                      <span>Add Liquidity</span>
                     </>
                   )}
                 </button>
@@ -454,7 +454,7 @@ export function ArcDexTestPool() {
 
           {!isConnected && !isWrongChain && (
             <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700 rounded-lg p-6 text-center text-slate-400">
-              Conecte sua carteira para adicionar liquidez
+              Connect your wallet to add liquidity
             </div>
           )}
         </div>

@@ -16,12 +16,12 @@ import { SegmentedTabs } from '@/components/SegmentedTabs'
 import { usePublicClient, useWaitForTransactionReceipt, useChainId } from 'wagmi'
 import { useArcWriteContract } from '@/hooks/useArcWriteContract'
 import { useArcWallet } from '@/hooks/useArcWallet'
-import { parseUnits } from 'viem'
+import { parseUnits, formatUnits } from 'viem'
 import { toast } from 'react-hot-toast'
 import { useUserPositions } from '@/hooks/usePools'
 import { ensureAllowance } from '@/lib/allowance'
 import { ARCDEX } from '@/config/arcDex'
-import { formatNumber, formatPercent } from '@/lib/format'
+import { formatMoney, formatPercent } from '@/lib/format'
 import { getPairAddress, type UserPoolPosition } from '@/lib/arcDexRead'
 import { FarmingPanel } from '@/components/Farming/FarmingPanel'
 import { isFarmingEnabled, getPoolId } from '@/config/farming'
@@ -183,11 +183,11 @@ function PositionCard({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div style={innerCell}>
             <div style={cellLabel}>Pooled {sym0}</div>
-            <div style={cellValue}>{formatNumber(pool.token0AmountFormatted, 4)}</div>
+            <div style={cellValue}>{formatMoney(pool.token0AmountFormatted, 4)}</div>
           </div>
           <div style={innerCell}>
             <div style={cellLabel}>Pooled {sym1}</div>
-            <div style={cellValue}>{formatNumber(pool.token1AmountFormatted, 4)}</div>
+            <div style={cellValue}>{formatMoney(pool.token1AmountFormatted, 4)}</div>
           </div>
           <div style={innerCell}>
             <div style={cellLabel}>Your pool share</div>
@@ -219,8 +219,8 @@ function PositionCard({
                 {pool.pairAddress}
               </a>
             </div>
-            <div>LP balance: {formatNumber(pool.lpBalanceFormatted, 8)} LP <span style={{ color: '#334155' }}>(raw: {pool.lpBalance})</span></div>
-            <div>Total LP supply: {formatNumber(pool.totalSupplyFormatted, 8)} LP <span style={{ color: '#334155' }}>(raw: {pool.totalSupply})</span></div>
+            <div>LP balance: {formatMoney(pool.lpBalanceFormatted, 4)} LP <span style={{ color: '#334155' }}>(raw: {pool.lpBalance})</span></div>
+            <div>Total LP supply: {formatMoney(pool.totalSupplyFormatted, 4)} LP <span style={{ color: '#334155' }}>(raw: {pool.totalSupply})</span></div>
             <div>
               Token0:{' '}
               <a href={`${explorerBase}/address/${pool.token0.address}`} target="_blank" rel="noopener noreferrer" style={{ color: '#4ea3ff', textDecoration: 'none' }}>{pool.token0.address}</a>
@@ -266,12 +266,43 @@ export function MyPoolsPage() {
   const [addingLiquidity, setAddingLiquidity] = useState(false)
   const [removePercent, setRemovePercent] = useState(100)
 
+  // Wallet balances of the managed pair's tokens — shown next to the "Add liquidity" inputs
+  const [walletBalance0, setWalletBalance0] = useState<string | null>(null)
+  const [walletBalance1, setWalletBalance1] = useState<string | null>(null)
+  const [loadingWalletBalances, setLoadingWalletBalances] = useState(false)
+
   useEffect(() => {
     if (isSuccess) {
       toast.success('Transaction confirmed')
       refetch()
     }
   }, [isSuccess, refetch])
+
+  useEffect(() => {
+    if (!managePool || !address || !publicClient) {
+      setWalletBalance0(null)
+      setWalletBalance1(null)
+      return
+    }
+    let cancelled = false
+    setLoadingWalletBalances(true)
+    Promise.all([
+      publicClient.readContract({ address: managePool.token0.address, abi: ERC20_ABI, functionName: 'balanceOf', args: [address] }) as Promise<bigint>,
+      publicClient.readContract({ address: managePool.token1.address, abi: ERC20_ABI, functionName: 'balanceOf', args: [address] }) as Promise<bigint>,
+    ])
+      .then(([b0, b1]) => {
+        if (cancelled) return
+        setWalletBalance0(formatUnits(b0, managePool.token0.decimals))
+        setWalletBalance1(formatUnits(b1, managePool.token1.decimals))
+      })
+      .catch(() => {
+        if (cancelled) return
+        setWalletBalance0(null)
+        setWalletBalance1(null)
+      })
+      .finally(() => { if (!cancelled) setLoadingWalletBalances(false) })
+    return () => { cancelled = true }
+  }, [managePool, address, publicClient])
 
   const handleAddLiquidity = async (pool: typeof positions[0]) => {
     if (!address || !publicClient) {
@@ -554,7 +585,27 @@ export function MyPoolsPage() {
                 ) : manageAction === 'add' ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs text-slate-400 block mb-1">{managePool.token0.symbol}</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs text-slate-400">{managePool.token0.symbol}</label>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-slate-500">
+                            {loadingWalletBalances
+                              ? 'Balance: ...'
+                              : walletBalance0 != null
+                              ? `Balance: ${formatMoney(walletBalance0, 4)}`
+                              : ''}
+                          </span>
+                          {walletBalance0 != null && parseFloat(walletBalance0) > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setAmount0(walletBalance0)}
+                              className="px-1.5 py-0.5 rounded-md text-[11px] font-bold text-cyan-400 bg-cyan-500/15 border border-cyan-500/35 hover:bg-cyan-500/25 transition-colors"
+                            >
+                              Max
+                            </button>
+                          )}
+                        </div>
+                      </div>
                       <input
                         type="number"
                         value={amount0}
@@ -564,7 +615,27 @@ export function MyPoolsPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-400 block mb-1">{managePool.token1.symbol}</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs text-slate-400">{managePool.token1.symbol}</label>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-slate-500">
+                            {loadingWalletBalances
+                              ? 'Balance: ...'
+                              : walletBalance1 != null
+                              ? `Balance: ${formatMoney(walletBalance1, 4)}`
+                              : ''}
+                          </span>
+                          {walletBalance1 != null && parseFloat(walletBalance1) > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setAmount1(walletBalance1)}
+                              className="px-1.5 py-0.5 rounded-md text-[11px] font-bold text-cyan-400 bg-cyan-500/15 border border-cyan-500/35 hover:bg-cyan-500/25 transition-colors"
+                            >
+                              Max
+                            </button>
+                          )}
+                        </div>
+                      </div>
                       <input
                         type="number"
                         value={amount1}
@@ -610,13 +681,13 @@ export function MyPoolsPage() {
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-300">{managePool.token0.symbol}</span>
                         <span className="text-white font-medium">
-                          {formatNumber((parseFloat(managePool.token0AmountFormatted) || 0) * (removePercent / 100), 6)}
+                          {formatMoney((parseFloat(managePool.token0AmountFormatted) || 0) * (removePercent / 100), 4)}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-300">{managePool.token1.symbol}</span>
                         <span className="text-white font-medium">
-                          {formatNumber((parseFloat(managePool.token1AmountFormatted) || 0) * (removePercent / 100), 6)}
+                          {formatMoney((parseFloat(managePool.token1AmountFormatted) || 0) * (removePercent / 100), 4)}
                         </span>
                       </div>
                     </div>

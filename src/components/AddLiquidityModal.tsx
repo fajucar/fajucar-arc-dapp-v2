@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, CSSProperties } from 'react'
 import { getTokenBalance } from '@/lib/balances'
+import { formatMoney } from '@/lib/format'
 
 interface Token {
   symbol: string
@@ -25,14 +26,6 @@ function formatRatio(r: number): string {
   if (r >= 1000) return Math.round(r).toLocaleString('pt-BR')
   if (r >= 0.0001) return r.toLocaleString('pt-BR', { maximumFractionDigits: 8 })
   return r.toFixed(10).replace(/\.?0+$/, '')
-}
-
-/** Remove trailing zeros: "0.430000" → "0.43", "0.000004" → "0.000004" */
-function trimBalance(raw: string, decimals: number): string {
-  const n = parseFloat(raw)
-  if (isNaN(n)) return '0'
-  const dp = Math.min(decimals, 6)
-  return n.toFixed(dp).replace(/\.?0+$/, '') || '0'
 }
 
 export default function AddLiquidityModal({
@@ -152,7 +145,7 @@ export default function AddLiquidityModal({
 
         {/* Header */}
         <div style={headerStyle}>
-          <span style={titleStyle}>Adicionar Liquidez</span>
+          <span style={titleStyle}>Add Liquidity</span>
           <button style={closeBtnStyle} onClick={onClose}>✕</button>
         </div>
 
@@ -165,9 +158,9 @@ export default function AddLiquidityModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={balanceLabelStyle}>
                   {loadingBalances
-                    ? 'Saldo: ...'
+                    ? 'Balance: ...'
                     : balanceA !== null
-                    ? `Saldo: ${trimBalance(balanceA, fmtA)}`
+                    ? `Balance: ${formatMoney(balanceA, 4)}`
                     : ''}
                 </span>
                 {balanceA !== null && parseFloat(balanceA) > 0 && (
@@ -190,7 +183,7 @@ export default function AddLiquidityModal({
             onChange={(e) => handleAmountA(e.target.value)}
             autoComplete="off"
           />
-          {isOverA && <span style={errorTextStyle}>Saldo insuficiente</span>}
+          {isOverA && <span style={errorTextStyle}>Insufficient balance</span>}
         </div>
 
         <div style={plusStyle}>+</div>
@@ -203,9 +196,9 @@ export default function AddLiquidityModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={balanceLabelStyle}>
                   {loadingBalances
-                    ? 'Saldo: ...'
+                    ? 'Balance: ...'
                     : balanceB !== null
-                    ? `Saldo: ${trimBalance(balanceB, fmtB)}`
+                    ? `Balance: ${formatMoney(balanceB, 4)}`
                     : ''}
                 </span>
                 {balanceB !== null && parseFloat(balanceB) > 0 && (
@@ -228,13 +221,13 @@ export default function AddLiquidityModal({
             onChange={(e) => handleAmountB(e.target.value)}
             autoComplete="off"
           />
-          {isOverB && <span style={errorTextStyle}>Saldo insuficiente</span>}
+          {isOverB && <span style={errorTextStyle}>Insufficient balance</span>}
         </div>
 
         {/* Preço */}
         <div style={priceBoxStyle}>
           {loadingPrice
-            ? 'Buscando preço...'
+            ? 'Fetching price...'
             : `1 ${tokenA.symbol} ≈ ${formatRatio(ratio)} ${tokenB.symbol}`}
         </div>
 
@@ -247,7 +240,7 @@ export default function AddLiquidityModal({
           disabled={!canConfirm}
           onClick={() => canConfirm && onConfirm?.(amountA, amountB)}
         >
-          {loading ? 'Processando...' : 'Adicionar Liquidez'}
+          {loading ? 'Processing...' : 'Add Liquidity'}
         </button>
       </div>
     </div>

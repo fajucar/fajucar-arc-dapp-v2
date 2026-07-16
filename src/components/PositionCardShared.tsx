@@ -19,30 +19,29 @@ export const TOKEN_COLOR: Record<string, string> = {
 }
 
 export const glassCard: CSSProperties = {
-  background:
-    'linear-gradient(rgba(15,8,32,0.88), rgba(15,8,32,0.88)) padding-box,' +
-    'linear-gradient(135deg, rgba(78,163,255,0.38), rgba(177,76,255,0.38)) border-box',
-  border: '1px solid transparent',
-  borderRadius: 20,
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
+  background: 'var(--glass-fill)',
+  border: '1px solid var(--glass-border)',
+  borderRadius: 'var(--radius-lg)',
+  backdropFilter: 'var(--glass-blur)',
+  WebkitBackdropFilter: 'var(--glass-blur)',
+  boxShadow: 'var(--card-shadow)',
   padding: 20,
 }
 
 export const innerCell: CSSProperties = {
-  background: 'rgba(255,255,255,0.025)',
-  border: '1px solid rgba(78,163,255,0.12)',
-  borderRadius: 12,
+  background: 'var(--glass-fill-strong)',
+  border: '1px solid var(--glass-border)',
+  borderRadius: 'var(--radius-md)',
   padding: '12px 14px',
 }
 
 export const cellLabel: CSSProperties = {
-  color: '#475569', fontSize: 10, fontWeight: 700,
+  color: 'var(--text-muted)', fontSize: 10, fontWeight: 700,
   textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7,
 }
 
 export const cellValue: CSSProperties = {
-  color: '#f0f4ff', fontSize: 15, fontWeight: 700,
+  color: 'var(--text-primary)', fontSize: 15, fontWeight: 700,
 }
 
 export function TokenPairIcons({ sym0, sym1 }: { sym0: string; sym1: string }) {

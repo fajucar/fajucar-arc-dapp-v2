@@ -169,10 +169,10 @@ function SendTab() {
     }
     try {
       await sendUsdc(recipient, amount)
-      toast.success('Transação enviada!')
+      toast.success('Transaction sent!')
     } catch (err: any) {
       if (!err?.message?.toLowerCase().includes('cancel')) {
-        toast.error(err?.message || 'Transação falhou')
+        toast.error(err?.message || 'Transaction failed')
       }
     }
   }
@@ -205,7 +205,7 @@ function SendTab() {
           <div className="rounded-full bg-green-500/20 p-3">
             <CheckCircle2 className="h-8 w-8 text-green-400" />
           </div>
-          <p className="font-bold text-green-400">Transação confirmada!</p>
+          <p className="font-bold text-green-400">Transaction confirmed!</p>
           <a
             href={`${CONSTANTS.LINKS.explorer}/tx/${hash}`}
             target="_blank"
@@ -302,7 +302,7 @@ function SendTab() {
           type="text"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="ex: almoço, café, serviço..."
+          placeholder="e.g. lunch, coffee, service..."
           className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
         />
       </div>
@@ -379,7 +379,7 @@ function ReceiveTab() {
     if (!paymentLink) return
     await navigator.clipboard.writeText(paymentLink)
     setCopied(true)
-    toast.success('Link copiado!')
+    toast.success('Link copied!')
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -401,7 +401,7 @@ function ReceiveTab() {
 
       {/* Amount (optional) */}
       <div>
-        <label className="block text-xs font-medium text-slate-400 mb-1.5">Amount <span className="text-slate-600">(opcional)</span></label>
+        <label className="block text-xs font-medium text-slate-400 mb-1.5">Amount <span className="text-slate-600">(optional)</span></label>
         <div className="flex gap-2">
           <input
             type="number"
@@ -423,7 +423,7 @@ function ReceiveTab() {
           type="text"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="ex: almoço, café, serviço..."
+          placeholder="e.g. lunch, coffee, service..."
           className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all"
         />
       </div>

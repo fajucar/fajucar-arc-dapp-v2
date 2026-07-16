@@ -14,7 +14,7 @@ import toast from 'react-hot-toast'
 import { getV3Addresses, getV3ConfigError } from '@/modules/v3/config'
 import { TokenSelectButton } from '@/components/TokenSelect'
 import { ensureAllowance } from '@/lib/allowance'
-import { formatNumber } from '@/lib/format'
+import { formatNumber, formatMoney } from '@/lib/format'
 import { useChainId } from 'wagmi'
 import { ARCDEX } from '@/config/arcDex'
 import { ARC_TESTNET_TOKENS } from '@/constants/tokens'
@@ -355,7 +355,7 @@ export function V3SwapPage() {
             />
           </div>
           <div className="text-xs text-slate-500 mt-1">
-            Balance: {formatNumber(formatUnits(balanceFrom, tokenFrom ? getBalanceToken(tokenFrom).decimals : 6), 4)}
+            Balance: {formatMoney(formatUnits(balanceFrom, tokenFrom ? getBalanceToken(tokenFrom).decimals : 6), 4)}
           </div>
         </div>
 
@@ -389,12 +389,12 @@ export function V3SwapPage() {
           </div>
           <div className="flex items-center justify-between mt-1">
             <div className="text-xs text-slate-500">
-              Saldo: {formatNumber(formatUnits(balanceTo, tokenTo ? getBalanceToken(tokenTo).decimals : 6), 4)}
+              Balance: {formatMoney(formatUnits(balanceTo, tokenTo ? getBalanceToken(tokenTo).decimals : 6), 4)}
             </div>
             {isQuoting && (
               <div className="flex items-center gap-1 text-xs text-slate-500">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Calculando...
+                Calculating...
               </div>
             )}
           </div>
@@ -429,7 +429,7 @@ export function V3SwapPage() {
               Confirming...
             </>
           ) : !isConnected ? (
-            'Fazer login'
+            'Log in'
           ) : !amountFrom || parseFloat(amountFrom) <= 0 ? (
             'Enter amount'
           ) : quoteError ? (

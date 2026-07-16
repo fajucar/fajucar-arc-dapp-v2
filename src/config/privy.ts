@@ -29,9 +29,12 @@ export const privyConfig: PrivyClientConfig = {
 
   embeddedWallets: {
     ethereum: {
-      // Cria wallet SOMENTE se o usuário ainda não tem uma.
-      // Impede que um segundo login social crie uma segunda embedded wallet.
-      createOnLogin: 'users-without-wallets',
+      // 'all-users' garante que TODO usuário tenha uma embedded wallet — pré-
+      // requisito para adicionar um session signer (agendamentos assinados
+      // pelo backend). Antes era 'users-without-wallets'; a mudança é segura:
+      // quem já tem wallet não ganha outra (Privy não duplica), e quem não
+      // tinha passa a ter uma na hora do login.
+      createOnLogin: 'all-users',
     },
   },
 

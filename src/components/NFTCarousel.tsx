@@ -11,7 +11,7 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({ nfts, selectedId, onSelect })
   return (
     <div className="w-full relative mt-8">
       <h4 className="text-slate-400 text-xs uppercase tracking-wider font-bold mb-4 ml-1">
-        Toque para Selecionar
+        Tap to Select
       </h4>
       
       <div className="flex overflow-x-auto gap-4 pb-6 scrollbar-hide snap-x snap-mandatory px-1">

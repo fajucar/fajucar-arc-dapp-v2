@@ -42,12 +42,12 @@ export function AvatarUpload({ currentAvatarUrl, onFileSelect }: AvatarUploadPro
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif']
     if (!allowedTypes.includes(file.type)) {
-      setError('Formato inválido. Selecione JPG, PNG ou GIF.')
+      setError('Invalid format. Select JPG, PNG or GIF.')
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setError('Arquivo muito grande. Máximo 5MB.')
+      setError('File too large. Maximum 5MB.')
       return
     }
 
@@ -59,7 +59,7 @@ export function AvatarUpload({ currentAvatarUrl, onFileSelect }: AvatarUploadPro
       onFileSelect(file) // passa o File original para o pai salvar
     } catch (err) {
       console.error('[AvatarUpload] Erro ao processar arquivo:', err)
-      setError('Erro ao processar imagem. Verifique as permissões do navegador.')
+      setError('Error processing image. Check your browser permissions.')
     }
   }
 
@@ -84,7 +84,7 @@ export function AvatarUpload({ currentAvatarUrl, onFileSelect }: AvatarUploadPro
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onError={() => {
-                setError('Erro ao carregar preview.')
+                setError('Error loading preview.')
                 setPreviewUrl(null)
               }}
             />
@@ -97,7 +97,7 @@ export function AvatarUpload({ currentAvatarUrl, onFileSelect }: AvatarUploadPro
 
         {/* Overlay hover */}
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <span className="text-white text-[11px] font-semibold">Alterar</span>
+          <span className="text-white text-[11px] font-semibold">Change</span>
         </div>
       </div>
 
@@ -115,7 +115,7 @@ export function AvatarUpload({ currentAvatarUrl, onFileSelect }: AvatarUploadPro
         onClick={triggerFileInput}
         className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:border-cyan-500/40 hover:text-cyan-300 transition-all"
       >
-        Upload imagem
+        Upload image
       </button>
 
       <AnimatePresence>

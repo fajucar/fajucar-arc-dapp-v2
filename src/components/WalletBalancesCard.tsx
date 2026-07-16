@@ -4,7 +4,7 @@ import { useAccount, usePublicClient } from 'wagmi'
 import { formatUnits } from 'viem'
 import { Wallet, Eye, EyeOff, X, ChevronDown } from 'lucide-react'
 import { ARC_TESTNET_TOKENS } from '@/config/tokens.arc-testnet'
-import { formatNumber } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { useTokenPrices } from '@/lib/tokenPrices'
 
 const ERC20_ABI = [
@@ -178,8 +178,8 @@ export function WalletBalancesCard() {
     <button
       onClick={() => setIsOpen(true)}
       role="button"
-      aria-label="Ver saldos da carteira"
-      title="Ver sua carteira"
+      aria-label="View wallet balances"
+      title="View your wallet"
       style={{
         cursor: 'pointer',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
@@ -201,7 +201,7 @@ export function WalletBalancesCard() {
     >
       <Wallet className="h-4 w-4 text-cyan-400 shrink-0" />
       <span className="font-semibold text-white">
-        {loading ? '…' : `$${formatNumber(totalUsdValue, 2)}`}
+        {loading ? '…' : `$${formatMoney(totalUsdValue, 2)}`}
       </span>
       <ChevronDown className="h-3.5 w-3.5 text-slate-500 shrink-0" />
     </button>
@@ -220,7 +220,7 @@ export function WalletBalancesCard() {
           <button
             onClick={() => setHideBalances(!hideBalances)}
             className="p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors"
-            title={hideBalances ? 'Mostrar saldos' : 'Ocultar saldos'}
+            title={hideBalances ? 'Show balances' : 'Hide balances'}
           >
             {hideBalances
               ? <EyeOff className="h-4 w-4 text-slate-400" />
@@ -229,7 +229,7 @@ export function WalletBalancesCard() {
           <button
             onClick={() => setIsOpen(false)}
             className="p-1.5 rounded-lg hover:bg-slate-700/50 transition-colors"
-            aria-label="Fechar"
+            aria-label="Close"
           >
             <X className="h-4 w-4 text-slate-400" />
           </button>
@@ -254,7 +254,7 @@ export function WalletBalancesCard() {
           <div className="pb-3 mb-1 border-b border-slate-700/50">
             <div className="text-xs text-slate-400 mb-0.5">Total Value</div>
             <div className="text-2xl font-bold text-white">
-              {hideBalances ? '•••••' : `$${formatNumber(totalUsdValue, 2)}`}
+              {hideBalances ? '•••••' : `$${formatMoney(totalUsdValue, 2)}`}
             </div>
           </div>
 
@@ -271,7 +271,7 @@ export function WalletBalancesCard() {
                 <div>
                   <div className="text-sm font-medium text-white">{b.symbol}</div>
                   <div className="text-xs text-slate-400">
-                    {hideBalances ? '•••••' : `$${formatNumber(b.usdValue, 2)}`}
+                    {hideBalances ? '•••••' : `$${formatMoney(b.usdValue, 2)}`}
                   </div>
                 </div>
               </div>
@@ -280,7 +280,7 @@ export function WalletBalancesCard() {
                   {hideBalances
                     ? '•••••'
                     // cirBTC: show up to 8 significant decimals; others 4
-                    : formatNumber(b.formattedBalance, b.symbol === 'cirBTC' ? 8 : 4)}
+                    : formatMoney(b.formattedBalance, b.symbol === 'cirBTC' ? 8 : 4)}
                 </div>
               </div>
             </div>

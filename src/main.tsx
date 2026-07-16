@@ -9,12 +9,15 @@ import { PrivyProvider } from '@privy-io/react-auth'
 import { config } from './config/wagmi'
 import { PRIVY_APP_ID, privyConfig } from './config/privy'
 import { WalletModalProvider } from './contexts/WalletModalContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import App from './App'
 import { PrivyEmbeddedWalletBootstrapper } from './components/Web3/PrivyEmbeddedWalletBootstrapper'
 import { PrivyDebugInfo } from './components/Web3/PrivyDebugInfo'
 import { OAuthCallbackHandler } from './components/Web3/OAuthCallbackHandler'
 import './i18n/config'
+import './styles/tokens.css'
+import './styles/glass.css'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -89,6 +92,7 @@ if (!rootElement) {
     createRoot(rootElement).render(
       <StrictMode>
       <ErrorBoundary>
+        <ThemeProvider>
         <BrowserRouter>
           <HelmetProvider>
             <ErrorBoundary>
@@ -130,6 +134,7 @@ if (!rootElement) {
             </ErrorBoundary>
           </HelmetProvider>
         </BrowserRouter>
+        </ThemeProvider>
       </ErrorBoundary>
       </StrictMode>
     )

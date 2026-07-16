@@ -25,7 +25,7 @@ import { ARCDEX } from '@/config/arcDex'
 import { ARC_TESTNET_TOKENS } from '@/config/tokens.arc-testnet'
 import { TokenSelectButton } from '@/components/TokenSelect'
 import { toast } from 'react-hot-toast'
-import { formatNumber } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { WalletBalancesCard } from '@/components/WalletBalancesCard'
 import { TVLHeader } from '@/components/TVLHeader'
 import { ProfessionalPoolCard } from '@/components/ProfessionalPoolCard'
@@ -427,7 +427,7 @@ export function PoolsPage() {
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-xs text-slate-400">Token A</label>
                         {genericTokenA && balanceA != null && (
-                          <span className="text-xs text-cyan-400">{t('pools.balanceLabel', { value: formatNumber(balanceA, 4) })}</span>
+                          <span className="text-xs text-cyan-400">{t('pools.balanceLabel', { value: formatMoney(balanceA, 4) })}</span>
                         )}
                       </div>
                       <TokenSelectButton
@@ -445,7 +445,7 @@ export function PoolsPage() {
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-xs text-slate-400">Token B</label>
                         {genericTokenB && balanceB != null && (
-                          <span className="text-xs text-cyan-400">{t('pools.balanceLabel', { value: formatNumber(balanceB, 4) })}</span>
+                          <span className="text-xs text-cyan-400">{t('pools.balanceLabel', { value: formatMoney(balanceB, 4) })}</span>
                         )}
                       </div>
                       <TokenSelectButton

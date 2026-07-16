@@ -77,8 +77,8 @@ export function useArcWriteContract() {
     if (!from) {
       throw new Error(
         hasEmbeddedWallet
-          ? 'Carteira de assinatura indisponível.'
-          : 'Aguarde a carteira Privy ser criada para assinar transações.'
+          ? 'Signing wallet unavailable.'
+          : 'Wait for the Privy wallet to be created to sign transactions.'
       )
     }
 
@@ -121,7 +121,7 @@ export function useArcWriteContract() {
 
     const client = await getWalletClient()
     if (!client) {
-      throw new Error('Carteira Privy não pronta. Faça login e aguarde alguns segundos.')
+      throw new Error('Privy wallet not ready. Log in and wait a few seconds.')
     }
 
     setSocialPending(true)

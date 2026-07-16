@@ -2,6 +2,7 @@ import { createPublicClient, http, type Address, getAddress, type PublicClient, 
 import { ARCDEX } from '@/config/arcDex'
 import { USDC_ADDRESS, EURC_ALTERNATIVE } from '@/config/tokens'
 import ArcDEXPairAbi from '@/abis/ArcDEXPair.min.json'
+import { makeV2Token, buildPair, pairReservesExact } from '@/lib/v2Sdk'
 
 // Factory ABI — only getPair (production Factory does not implement allPairsLength/allPairs)
 const FACTORY_ABI = [
@@ -345,11 +346,13 @@ export async function readPairState(
       else lpDecimals = 18
     }
 
-    // Formatar valores humanos
-    const reserve0Formatted = (Number(reserve0Raw) / (10 ** token0Metadata.decimals)).toFixed(6)
-    const reserve1Formatted = (Number(reserve1Raw) / (10 ** token1Metadata.decimals)).toFixed(6)
-    const divisor = 10 ** lpDecimals
-    const totalSupplyFormatted = (Number(totalSupplyRaw) / divisor).toFixed(6)
+    // Formatar valores humanos — reserves via @uniswap/v2-sdk Pair (decimal-exact, sem perda de
+    // precisão por float); totalSupply via formatUnits (mesma garantia, sem depender do Pair)
+    const sdkToken0 = makeV2Token(ARCDEX.chainId, token0Metadata.address, token0Metadata.decimals, token0Metadata.symbol)
+    const sdkToken1 = makeV2Token(ARCDEX.chainId, token1Metadata.address, token1Metadata.decimals, token1Metadata.symbol)
+    const pair = buildPair(sdkToken0, sdkToken1, reserve0Raw, reserve1Raw)
+    const { reserve0: reserve0Formatted, reserve1: reserve1Formatted } = pairReservesExact(pair)
+    const totalSupplyFormatted = formatUnits(totalSupplyRaw, lpDecimals)
 
     console.log('[arcDexRead] LP decimals:', lpDecimals, 'totalSupplyFormatted:', totalSupplyFormatted)
 

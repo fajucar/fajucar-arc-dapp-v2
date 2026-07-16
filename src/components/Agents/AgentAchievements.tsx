@@ -140,24 +140,24 @@ export function AgentAchievements() {
 
   const handleMint = async (phase: Phase) => {
     if (pendingGoogleWallet) {
-      toast.error('Carteira em criação. Aguarde alguns segundos e tente novamente.')
+      toast.error('Wallet being created. Wait a few seconds and try again.')
       return
     }
     if (mintingId !== null) return
     if (!address || !isConnected) {
-      toast.error('Conecte sua carteira primeiro')
+      toast.error('Connect your wallet first')
       return
     }
     if (authMethod === 'wallet' && chainId !== ARC_TESTNET.chainId) {
-      toast.error(`Mude para ${ARC_TESTNET.chainName} (Chain ID: ${ARC_TESTNET.chainId})`)
+      toast.error(`Switch to ${ARC_TESTNET.chainName} (Chain ID: ${ARC_TESTNET.chainId})`)
       return
     }
     if (!hasCollection) {
-      toast.error('Coleção não configurada.')
+      toast.error('Collection not configured.')
       return
     }
     if (authMethod === 'wallet' && !walletClient) {
-      toast.error('Carteira não pronta.')
+      toast.error('Wallet not ready.')
       return
     }
 

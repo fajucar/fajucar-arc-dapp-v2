@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, ExternalLink, ChevronDown, BarChart3 } from 'lucide-react'
 import { BarChart, Bar, ResponsiveContainer, Cell } from 'recharts'
-import { formatNumber, formatUSD } from '@/lib/format'
+import { formatMoney, formatUSD } from '@/lib/format'
 import { useTokenPrices, toUSD } from '@/lib/tokenPrices'
 import type { PoolMarketInfo } from '@/hooks/usePools'
 
@@ -70,7 +70,7 @@ export function ProfessionalPoolCard({
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2, scale: 1.01 }}
       transition={{ duration: 0.2 }}
-      className="rounded-2xl border border-slate-700/50 bg-slate-800/30 shadow-lg shadow-black/20 p-6 transition-all duration-200 hover:border-slate-600/60 hover:shadow-xl hover:shadow-black/25"
+      className="glass-card p-6"
     >
       {/* Header */}
       <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
@@ -97,7 +97,7 @@ export function ProfessionalPoolCard({
                 {pool.feeTier}
               </span>
               <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                Ativo
+                Active
               </span>
             </div>
           </div>
@@ -132,7 +132,7 @@ export function ProfessionalPoolCard({
         </div>
 
         <div>
-          <div className="text-xs text-slate-400 mb-1">Taxas 24h</div>
+          <div className="text-xs text-slate-400 mb-1">Fees 24h</div>
           <div className="text-sm font-semibold text-slate-500">--</div>
         </div>
       </div>
@@ -141,7 +141,7 @@ export function ProfessionalPoolCard({
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2">
           <BarChart3 className="h-4 w-4 text-slate-400" />
-          <span className="text-xs text-slate-400">Distribuição de Liquidez</span>
+          <span className="text-xs text-slate-400">Liquidity Distribution</span>
         </div>
         <div className="h-16">
           <ResponsiveContainer width="100%" height="100%">
@@ -165,7 +165,7 @@ export function ProfessionalPoolCard({
         onClick={() => setDetailsOpen(!detailsOpen)}
         className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium border border-slate-600/50 bg-slate-800/40 text-slate-200 hover:bg-slate-700/40 transition-colors"
       >
-        <span>Detalhes</span>
+        <span>Details</span>
         <ChevronDown className={`h-4 w-4 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
       </button>
 
@@ -178,7 +178,7 @@ export function ProfessionalPoolCard({
         >
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <span className="text-slate-500">Endereço do Par:</span>
+              <span className="text-slate-500">Pair Address:</span>
               <div className="font-mono text-cyan-400 break-all">
                 {pool.pairAddress.slice(0, 10)}...{pool.pairAddress.slice(-8)}
               </div>
@@ -186,20 +186,20 @@ export function ProfessionalPoolCard({
             <div>
               <span className="text-slate-500">Supply Total (LP):</span>
               <div className="text-slate-200">
-                {formatNumber(pool.totalSupplyFormatted)} LP
+                {formatMoney(pool.totalSupplyFormatted, 4)} LP
               </div>
             </div>
           </div>
 
           <div>
-            <span className="text-slate-500">Reservas:</span>
+            <span className="text-slate-500">Reserves:</span>
             <div className="text-slate-200 space-y-0.5 mt-0.5">
               <div>
-                {formatNumber(pool.reserve0Formatted, 6)} {pool.token0.symbol}
+                {formatMoney(pool.reserve0Formatted, 4)} {pool.token0.symbol}
                 <span className="text-slate-400 ml-1">({formatUSD(reserve0USD)})</span>
               </div>
               <div>
-                {formatNumber(pool.reserve1Formatted, 6)} {pool.token1.symbol}
+                {formatMoney(pool.reserve1Formatted, 4)} {pool.token1.symbol}
                 <span className="text-slate-400 ml-1">({formatUSD(reserve1USD)})</span>
               </div>
             </div>
@@ -216,7 +216,7 @@ export function ProfessionalPoolCard({
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300 pt-2 transition-colors"
           >
-            Ver no {explorerName}
+            View on {explorerName}
             <ExternalLink className="h-3 w-3" />
           </a>
         </motion.div>

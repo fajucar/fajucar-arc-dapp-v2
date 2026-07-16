@@ -322,7 +322,7 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
 
       // "Connector already connected" = state mismatch (wagmi thinks connected, UI doesn't)
       if (errorString.includes('connector') && errorString.includes('already connected')) {
-        setConnectError('Conexão em estado inválido. Clique em "Resetar e conectar" para corrigir.')
+        setConnectError('Connection in invalid state. Click "Reset and connect" to fix it.')
         setIsConnecting(false)
         return
       }
@@ -374,7 +374,7 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
           <button
             onClick={onClose}
             className="rounded-md px-2 py-1 text-slate-300 hover:text-white transition-colors"
-            aria-label="Fechar"
+            aria-label="Close"
           >
             ✕
           </button>
@@ -432,9 +432,9 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
                 {walletConnectDisabled ? (
                   <>
                     <p className="font-semibold text-red-400 mb-2">WalletConnect disabled</p>
-                    <p className="text-sm mb-2">WalletConnect falhou neste dispositivo.</p>
+                    <p className="text-sm mb-2">WalletConnect failed on this device.</p>
                     <p className="text-xs text-slate-500 mb-3">
-                      Use o navegador da MetaMask ou outra carteira.
+                      Use the MetaMask browser or another wallet.
                     </p>
                     <button
                       onClick={resetWalletConnectBreaker}
@@ -508,18 +508,18 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
           {connectError && (
             <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 space-y-2">
               <p className="text-sm text-red-400">{connectError}</p>
-              {(connectError.includes('Resetar') || connectError.toLowerCase().includes('already connected')) && (
+              {(connectError.includes('Reset and connect') || connectError.toLowerCase().includes('already connected')) && (
                 <button
                   onClick={() => {
                     clearWagmiStorage()
                     setConnectError(null)
                     onClose()
-                    toast.success('Conexão resetada. Tente conectar novamente.')
+                    toast.success('Connection reset. Try connecting again.')
                     window.location.reload()
                   }}
                   className="w-full py-2 rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-amber-500/30 border border-cyan-500/40 text-sm font-medium"
                 >
-                  Resetar e conectar
+                  Reset and connect
                 </button>
               )}
             </div>

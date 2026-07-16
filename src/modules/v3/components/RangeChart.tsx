@@ -18,9 +18,16 @@ interface RangeChartProps {
   symbol1: string
   inRange?: boolean
   label?: string
+  /** Decimal-adjusted price labels (from the Uniswap SDK's tickToPrice). Falls back to raw 1.0001^tick if omitted. */
+  minPriceLabel?: string
+  maxPriceLabel?: string
+  currentPriceLabel?: string
 }
 
-export function RangeChart({ tickLower, tickUpper, currentTick, symbol0, symbol1, inRange = true, label = 'Selected Range' }: RangeChartProps) {
+export function RangeChart({
+  tickLower, tickUpper, currentTick, symbol0, symbol1, inRange = true, label = 'Selected Range',
+  minPriceLabel, maxPriceLabel, currentPriceLabel,
+}: RangeChartProps) {
   const { pctLower, pctUpper, pctCurrent, minPrice, maxPrice, currentPrice } = useMemo(() => {
     const tickMin = Math.min(tickLower, tickUpper, currentTick) - 1
     const tickMax = Math.max(tickLower, tickUpper, currentTick) + 1
@@ -32,18 +39,18 @@ export function RangeChart({ tickLower, tickUpper, currentTick, symbol0, symbol1
       pctLower,
       pctUpper,
       pctCurrent,
-      minPrice: priceAtTick(Math.min(tickLower, tickUpper)),
-      maxPrice: priceAtTick(Math.max(tickLower, tickUpper)),
-      currentPrice: priceAtTick(currentTick),
+      minPrice: minPriceLabel ?? priceAtTick(Math.min(tickLower, tickUpper)).toFixed(4),
+      maxPrice: maxPriceLabel ?? priceAtTick(Math.max(tickLower, tickUpper)).toFixed(4),
+      currentPrice: currentPriceLabel ?? priceAtTick(currentTick).toFixed(4),
     }
-  }, [tickLower, tickUpper, currentTick])
+  }, [tickLower, tickUpper, currentTick, minPriceLabel, maxPriceLabel, currentPriceLabel])
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white">{label}</h3>
         <span className="text-xs text-slate-500">
-          Current: {currentPrice.toFixed(4)} {symbol1}/{symbol0}
+          Current: {currentPrice} {symbol1}/{symbol0}
         </span>
       </div>
       <div className="relative h-12 bg-slate-900/80 rounded-lg border border-slate-600/50 overflow-hidden">
@@ -63,13 +70,13 @@ export function RangeChart({ tickLower, tickUpper, currentTick, symbol0, symbol1
       </div>
       <div className="flex justify-between text-xs">
         <div className="text-slate-400">
-          <span className="font-medium text-slate-300">Min</span> {minPrice.toFixed(4)} {symbol1}
+          <span className="font-medium text-slate-300">Min</span> {minPrice} {symbol1}
         </div>
         <div className={`font-medium ${inRange ? 'text-emerald-400' : 'text-amber-400'}`}>
-          Current: {currentTick}
+          Current: {currentPrice} {symbol1}
         </div>
         <div className="text-slate-400">
-          <span className="font-medium text-slate-300">Max</span> {maxPrice.toFixed(4)} {symbol1}
+          <span className="font-medium text-slate-300">Max</span> {maxPrice} {symbol1}
         </div>
       </div>
       {!inRange && (

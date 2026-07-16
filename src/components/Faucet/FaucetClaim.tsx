@@ -100,14 +100,14 @@ export function FaucetClaim() {
   }, [endsAtByToken])
 
   const handleClaim = async (tokenSymbol: string) => {
-    if (!address) { toast.error('Conecte a wallet'); return }
-    if (isWrongChain) { toast.error('Conecte à Arc Testnet'); return }
+    if (!address) { toast.error('Connect your wallet'); return }
+    if (isWrongChain) { toast.error('Connect to Arc Testnet'); return }
 
     const token = FAUCET_TOKENS.find((t) => t.symbol === tokenSymbol)
     if (!token) return
 
     const rem = remainingByToken[tokenSymbol] ?? 0
-    if (rem > 0) { toast.error('Cooldown ativo. Aguarde o countdown.'); return }
+    if (rem > 0) { toast.error('Cooldown active. Wait for the countdown.'); return }
 
     // Guard: usar SEMPRE a embedded wallet do Privy (não wallets[0], que é order-dependent)
     const wallet =
@@ -115,13 +115,13 @@ export function FaucetClaim() {
       wallets[0]
     if (!wallet) {
       console.error('No wallet found')
-      toast.error('Nenhuma wallet encontrada')
+      toast.error('No wallet found')
       return
     }
 
     setIsClaiming(true)
     setClaimError(null)
-    const toastId = toast.loading('Enviando claim...')
+    const toastId = toast.loading('Sending claim...')
 
     try {
       // Get provider with error handling
@@ -130,7 +130,7 @@ export function FaucetClaim() {
       // Guard: check provider exists
       if (!provider) {
         console.error('Provider is undefined')
-        toast.error('Provider da wallet não disponível', { id: toastId })
+        toast.error('Wallet provider not available', { id: toastId })
         setIsClaiming(false)
         return
       }
@@ -190,7 +190,7 @@ export function FaucetClaim() {
       })
 
       console.log('Claim tx:', tx)
-      toast.success('Claim confirmado! ✅', { id: toastId })
+      toast.success('Claim confirmed! ✅', { id: toastId })
       fetchRemaining()
     } catch (err: unknown) {
       console.error('Claim failed:', err)
@@ -201,17 +201,17 @@ export function FaucetClaim() {
         raw?.shortMessage ||
         raw?.cause?.message ||
         raw?.message ||
-        'Falha no claim'
+        'Claim failed'
 
       console.error('[Faucet] claim error:', msg, err)
 
       // Show error message to user instead of infinite spinner
       setClaimError(String(err))
 
-      if (/rejected|denied/i.test(msg)) toast.error('Transação cancelada', { id: toastId })
-      else if (/cooldown|wait/i.test(msg)) toast.error('Cooldown ainda ativo', { id: toastId })
-      else if (/empty|vazio|insufficient|balance/i.test(msg)) toast.error('Faucet sem saldo', { id: toastId })
-      else if (/not.*support|not.*register|invalid.*token/i.test(msg)) toast.error('Token não suportado pelo faucet', { id: toastId })
+      if (/rejected|denied/i.test(msg)) toast.error('Transaction cancelled', { id: toastId })
+      else if (/cooldown|wait/i.test(msg)) toast.error('Cooldown still active', { id: toastId })
+      else if (/empty|vazio|insufficient|balance/i.test(msg)) toast.error('Faucet has no balance', { id: toastId })
+      else if (/not.*support|not.*register|invalid.*token/i.test(msg)) toast.error('Token not supported by the faucet', { id: toastId })
       else toast.error(msg.slice(0, 120), { id: toastId })
     } finally {
       // CRITICAL: Always stop the loading spinner
@@ -225,7 +225,7 @@ export function FaucetClaim() {
     return (
       <div className="rounded-2xl border border-slate-700/40 bg-slate-800/20 p-6 text-center">
         <Droplet className="h-12 w-12 text-slate-500 mx-auto mb-3" />
-        <p className="text-slate-400">Conecte a wallet para usar o faucet</p>
+        <p className="text-slate-400">Connect your wallet to use the faucet</p>
       </div>
     )
   }
@@ -235,9 +235,9 @@ export function FaucetClaim() {
       <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-3">
         <AlertCircle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="font-medium text-amber-200">Rede incorreta</p>
+          <p className="font-medium text-amber-200">Wrong network</p>
           <p className="text-sm text-amber-200/90 mt-1">
-            Conecte à <strong>Arc Testnet</strong> (Chain ID 5042002) para reivindicar FAJU e ARCX.
+            Connect to <strong>Arc Testnet</strong> (Chain ID 5042002) to claim FAJU and ARCX.
           </p>
         </div>
       </div>
@@ -250,13 +250,13 @@ export function FaucetClaim() {
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium text-red-200">Erro no Claim</p>
+            <p className="font-medium text-red-200">Claim Error</p>
             <p className="text-sm text-red-200/90 mt-1">{claimError}</p>
             <button
               onClick={() => setClaimError(null)}
               className="text-xs text-red-300 hover:text-red-200 mt-2 underline"
             >
-              Fechar
+              Close
             </button>
           </div>
         </div>
@@ -274,13 +274,13 @@ export function FaucetClaim() {
             <div>
               <h3 className="font-semibold text-white">Claim {token.claimAmount} {token.symbol}</h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Cooldown de 24h entre claims
+                24h cooldown between claims
               </p>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
               {!canClaim && (
                 <span className="text-sm text-slate-300 font-mono">
-                  Próximo em {countdown}
+                  Next in {countdown}
                 </span>
               )}
               <button

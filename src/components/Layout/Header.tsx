@@ -5,6 +5,7 @@ import { usePrivy } from '@privy-io/react-auth'
 import { useTranslation } from 'react-i18next'
 import { ConnectButton } from '@/components/Web3/ConnectButton'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTheme } from '@/contexts/ThemeContext'
 
 const navItems = [
   { to: '/', icon: Home, labelKey: 'nav.home' },
@@ -14,15 +15,6 @@ const navItems = [
   { to: '/my-pools', icon: Wallet, labelKey: 'nav.myPools' },
   { to: '/my-nfts', icon: Image, labelKey: 'nav.myNfts' },
 ] as const
-
-const desktopNavBaseClass =
-  'flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-out'
-
-const desktopNavInactiveClass =
-  'text-slate-400 hover:bg-slate-800/45 hover:text-slate-100 hover:shadow-sm hover:shadow-slate-950/30'
-
-const desktopNavActiveClass =
-  'border border-fuchsia-500/30 bg-gradient-to-r from-fuchsia-500/12 via-purple-500/10 to-blue-500/12 text-fuchsia-100 shadow-[0_0_18px_rgba(217,70,239,0.14)] backdrop-blur-sm hover:brightness-110'
 
 const mobileNavBaseClass =
   'flex items-center gap-2 rounded-full px-4 py-3 text-sm font-medium transition-all duration-200 ease-out'
@@ -38,7 +30,7 @@ function getNavItemClass(isActive: boolean, variant: 'desktop' | 'mobile') {
     return `${mobileNavBaseClass} ${isActive ? mobileNavActiveClass : mobileNavInactiveClass}`
   }
 
-  return `${desktopNavBaseClass} ${isActive ? desktopNavActiveClass : desktopNavInactiveClass}`
+  return `navbar-tab${isActive ? ' active' : ''}`
 }
 
 function NavItem({ to, icon: Icon, label }: { to: string; icon: ComponentType<{ className?: string }>; label: string }) {
@@ -48,7 +40,7 @@ function NavItem({ to, icon: Icon, label }: { to: string; icon: ComponentType<{ 
       end={to === '/'}
       className={({ isActive }) => getNavItemClass(isActive, 'desktop')}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className="h-4 w-4 shrink-0 inline-block mr-1.5 align-text-bottom" />
       <span>{label}</span>
     </NavLink>
   )
@@ -58,6 +50,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { authenticated, user } = usePrivy()
   const { t } = useTranslation()
+  const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
     if (authenticated && user) {
@@ -74,28 +67,31 @@ export function Header() {
   }, [authenticated, user])
 
   return (
-    <header className="sticky top-0 z-50 border-b border-purple-900/40 bg-[#1a0a3c]/80 backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+    <header>
+      <nav className="navbar-glass mx-auto max-w-7xl">
         {/* Logo / Brand */}
         <Link to="/" className="flex items-center gap-2.5 group">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-semibold text-sm">
             A
           </div>
-          <span className="font-display text-lg font-bold text-white tracking-tight">FajuARC</span>
+          <span className="navbar-logo">FajuARC</span>
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-1">
+        <div className="navbar-tabs">
           {navItems.map((item) => (
             <NavItem key={item.to} to={item.to} icon={item.icon} label={t(item.labelKey)} />
           ))}
         </div>
 
-        {/* Right: Network Badge + Wallet */}
+        {/* Right: Network Badge + Theme Toggle + Wallet */}
         <div className="hidden md:flex items-center gap-3">
           <div className="rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-400 bg-slate-800/60 border border-slate-700/60">
             Arc Testnet
           </div>
+          <button type="button" className="theme-toggle" onClick={toggleTheme}>
+            {theme === 'dark-purple' ? '⬛ Black' : '🟣 Purple'}
+          </button>
           <div className="relative">
             <ConnectButton />
           </div>
@@ -125,6 +121,9 @@ export function Header() {
                 <div className="rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-400 bg-slate-800/60 border border-slate-700/60 w-fit">
                   Arc Testnet
                 </div>
+                <button type="button" className="theme-toggle" onClick={toggleTheme}>
+                  {theme === 'dark-purple' ? '⬛ Black' : '🟣 Purple'}
+                </button>
               </div>
               {navItems.map((item) => (
                 <NavLink

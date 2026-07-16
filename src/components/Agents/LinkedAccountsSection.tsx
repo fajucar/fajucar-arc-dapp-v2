@@ -120,11 +120,11 @@ export function LinkedAccountsSection() {
     setLinking(social.type)
     try {
       await Promise.resolve(social.linkFn())
-      toast.success(`${social.label} vinculado com sucesso!`)
+      toast.success(`${social.label} linked successfully!`)
     } catch (err: any) {
       const msg = String(err?.message ?? err)
       if (!msg.toLowerCase().includes('cancel') && !msg.toLowerCase().includes('dismiss')) {
-        toast.error(`Erro ao vincular ${social.label}`)
+        toast.error(`Error linking ${social.label}`)
       }
     } finally {
       setLinking(null)
@@ -135,7 +135,7 @@ export function LinkedAccountsSection() {
     if (!address) return
     await navigator.clipboard.writeText(address)
     setCopied(true)
-    toast.success('Endereço copiado!')
+    toast.success('Address copied!')
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -151,7 +151,7 @@ export function LinkedAccountsSection() {
       className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-slate-900/80 to-[#0a0a1a]/90 p-5 shadow-xl shadow-purple-500/5"
     >
       <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
-        Minhas Contas
+        My Accounts
       </h3>
 
       <div className="space-y-2.5 mb-4">
@@ -184,8 +184,8 @@ export function LinkedAccountsSection() {
                   className="ml-auto flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-300 hover:bg-purple-500/20 disabled:opacity-50 transition-all"
                 >
                   {isLinking
-                    ? <><Loader2 className="h-3 w-3 animate-spin" /> Vinculando…</>
-                    : <><Link2 className="h-3 w-3" /> Vincular</>}
+                    ? <><Loader2 className="h-3 w-3 animate-spin" /> Linking…</>
+                    : <><Link2 className="h-3 w-3" /> Link</>}
                 </button>
               )}
             </div>
@@ -196,7 +196,7 @@ export function LinkedAccountsSection() {
       {/* Shared wallet */}
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-1.5">
-          Carteira compartilhada
+          Shared wallet
         </p>
         <div className="flex items-center justify-between gap-2">
           <p className="font-mono text-sm text-amber-300">
@@ -206,7 +206,7 @@ export function LinkedAccountsSection() {
             <div className="flex items-center gap-1">
               <button
                 onClick={copyAddress}
-                title="Copiar endereço"
+                title="Copy address"
                 className="rounded-lg p-1.5 text-slate-500 hover:text-amber-300 hover:bg-slate-800 transition-colors"
               >
                 {copied
@@ -215,7 +215,7 @@ export function LinkedAccountsSection() {
               </button>
               <button
                 onClick={openExplorer}
-                title="Ver no Explorer"
+                title="View on Explorer"
                 className="rounded-lg p-1.5 text-slate-500 hover:text-amber-300 hover:bg-slate-800 transition-colors"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -224,7 +224,7 @@ export function LinkedAccountsSection() {
           )}
         </div>
         <p className="mt-1.5 text-[10px] text-slate-600 leading-relaxed">
-          Todas as contas vinculadas compartilham esta carteira automaticamente.
+          All linked accounts automatically share this wallet.
         </p>
       </div>
     </motion.div>
