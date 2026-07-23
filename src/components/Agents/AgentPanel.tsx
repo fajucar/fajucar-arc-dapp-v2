@@ -37,6 +37,8 @@ import {
 } from './agentConstants'
 import toast from 'react-hot-toast'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3002'
+
 // ── Social icons (compact, 20×20) ─────────────────────────────────────────────
 
 function SmGoogle() {
@@ -497,7 +499,7 @@ export function PersonalizarModal({ profile, onSave, onClose }: ModalProps) {
 
     // Salvar endereço de saque no backend (silencioso se falhar)
     if (address && withdrawalAddress && isAddress(withdrawalAddress)) {
-      fetch('http://localhost:3002/api/wallet/withdrawal-address', {
+      fetch(`${API_BASE}/api/wallet/withdrawal-address`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress: address, withdrawalAddress }),

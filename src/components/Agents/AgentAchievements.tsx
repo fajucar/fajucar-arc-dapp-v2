@@ -15,7 +15,7 @@ import FajucarCollectionAbi from '@/abis/FajucarCollection.json'
 import { arcClient } from '@/lib/arcClient'
 import { loadProfile } from '@/components/Agents/agentConstants'
 
-const API_BASE = 'http://localhost:3002/api/explorer'
+const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:3002'}/api/explorer`
 
 type Phase = {
   modelId: number

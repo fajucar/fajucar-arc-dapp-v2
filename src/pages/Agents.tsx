@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next'
 const NFT_CONTRACT  = '0x1499947A89Ef05B023176D31191BDC5CCF3d0B7E'.toLowerCase()
 const USDC_CONTRACT = '0x3600000000000000000000000000000000000000'.toLowerCase()
 const EXPLORER_BASE = 'https://testnet.arcscan.app'           // correct ArcScan domain
-const API_BASE      = 'http://localhost:3002/api/explorer'     // proxied through backend
+const API_BASE      = `${import.meta.env.VITE_API_URL || 'http://localhost:3002'}/api/explorer`     // proxied through backend
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function timeAgo(ts: string): string {

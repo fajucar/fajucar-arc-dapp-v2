@@ -40,17 +40,7 @@ const get = (key) => (process.env[key] || env[key] || '').trim()
 const CIRCLE_API_KEY       = get('CIRCLE_API_KEY')
 const CIRCLE_ENTITY_SECRET = get('CIRCLE_ENTITY_SECRET')
 const CIRCLE_WALLET_SET_ID = get('CIRCLE_WALLET_SET_ID')
-// Allow both the legacy port (3000) and Vite's default (5173)
-const FRONTEND_ORIGINS = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:3003',
-  'http://localhost:5173',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001',
-  'http://127.0.0.1:3003',
-  'http://127.0.0.1:5173',
-]
+const FRONTEND_URL = get('FRONTEND_URL') || 'http://localhost:3000'
 
 // ── Token & Contract Addresses ────────────────────────────────────────────────
 const ADDR = {
@@ -85,7 +75,7 @@ const circle = initiateDeveloperControlledWalletsClient({
 // ── Express ───────────────────────────────────────────────────────────────────
 const app = express()
 
-app.use(cors({ origin: FRONTEND_ORIGINS, credentials: true }))
+app.use(cors({ origin: FRONTEND_URL, credentials: true }))
 app.use(express.json())
 
 // ── Rotas ─────────────────────────────────────────────────────────────────────
@@ -418,7 +408,7 @@ app.get('/api/notifications/stream', (req, res) => {
   })
 })
 
-const PORT = 3002
+const PORT = process.env.PORT || 3002
 app.listen(PORT, () => {
   console.log(`\n🟢 FajuARC Backend em http://localhost:${PORT}`)
   console.log('   Auth: Privy (frontend-only)')

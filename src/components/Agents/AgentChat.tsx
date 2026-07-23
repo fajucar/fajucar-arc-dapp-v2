@@ -24,6 +24,8 @@ import { notifyTxExecuted } from '@/lib/notify'
 import { ConfirmationCard } from './ConfirmationCard'
 import type { Personality } from './agentConstants'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3002'
+
 // ── Anthropic message types (minimal subset) ──────────────────────────────────
 type TextBlock       = { type: 'text';     text: string }
 type ToolUseBlock    = { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
@@ -233,7 +235,7 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
   const effectiveAddr = address ?? walletAddress
   useEffect(() => {
     if (!effectiveAddr) return
-    fetch(`http://localhost:3002/api/wallet/withdrawal-address/${effectiveAddr}`)
+    fetch(`${API_BASE}/api/wallet/withdrawal-address/${effectiveAddr}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.withdrawalAddress) setWithdrawalAddress(data.withdrawalAddress) })
       .catch(() => {})
@@ -272,7 +274,7 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
   // so this can inject into this component's own message list.
   useEffect(() => {
     if (!effectiveAddr) return
-    const source = new EventSource(`http://localhost:3002/api/notifications/stream?address=${effectiveAddr}`)
+    const source = new EventSource(`${API_BASE}/api/notifications/stream?address=${effectiveAddr}`)
 
     source.onmessage = (event) => {
       let payload: {
@@ -445,7 +447,7 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
         privyEmail:    effectiveEmail ?? '(none — falling back to DID for Circle wallet lookup)',
       })
 
-      const resp = await fetch('http://localhost:3002/api/agent/chat', {
+      const resp = await fetch(`${API_BASE}/api/agent/chat`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
