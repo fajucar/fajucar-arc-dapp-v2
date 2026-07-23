@@ -38,15 +38,7 @@ export const privyConfig: PrivyClientConfig = {
     },
   },
 
-  walletConnectCloudProjectId: '9c0cb1d56f2c523a497a6a3f0d65fa25',
-
-  externalWallets: {
-    coinbaseWallet: {
-      config: {
-        preference: { options: 'smartWalletOnly' },
-      },
-    },
-  },
+  walletConnectCloudProjectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
 
   appearance: {
     theme: 'dark' as const,
@@ -60,7 +52,6 @@ export const privyConfig: PrivyClientConfig = {
     showWalletLoginFirst: false,
     walletList: [
       'metamask',        // desktop + mobile deep link
-      'coinbase_wallet', // desktop + mobile
       'rainbow',         // desktop + mobile
       'okx_wallet',      // desktop + mobile (tem in-app browser)
       'wallet_connect',  // fallback: 100+ carteiras via WalletConnect

@@ -5,6 +5,7 @@ import { clearWagmiStorage } from '@/lib/wagmiStorage'
 import toast from 'react-hot-toast'
 import { ExternalLink } from 'lucide-react'
 import { WALLETCONNECT_PROJECT_ID } from '@/config/wagmi'
+import { isMobileDevice } from '@/utils/device'
 import { SocialLoginSection } from './SocialLoginSection'
 
 interface WalletModalProps {
@@ -39,19 +40,12 @@ function isInstalled(check: (p: InjectedProvider) => boolean): boolean {
   })
 }
 
-// Helper para detectar mobile
-function isMobile(): boolean {
-  if (typeof window === 'undefined') return false
-  return window.matchMedia('(pointer: coarse)').matches || 
-         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-}
-
 export function WalletModal({ isOpen, onClose }: WalletModalProps) {
   const { authenticated } = usePrivy()
   const { connectAsync, isPending } = useConnect()
   const { mutateAsync: disconnectAsync } = useDisconnect()
   const connectors = useConnectors()
-  const mobile = isMobile()
+  const mobile = isMobileDevice()
   const [isConnecting, setIsConnecting] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
   const [walletConnectDisabled, setWalletConnectDisabled] = useState(false)

@@ -1,6 +1,7 @@
 import { createConfig } from '@privy-io/wagmi'
 import { http, fallback } from 'wagmi'
 import { injected, walletConnect } from 'wagmi/connectors'
+import { isMobileDevice } from '@/utils/device'
 import { arcTestnet } from './chains'
 
 const isDev = (import.meta.env as { MODE?: string }).MODE === 'development'
@@ -35,8 +36,8 @@ if (isDev) {
   }
 }
 
-// Mobile via userAgent (android|iphone|ipad|ipod)
-const isMobile = typeof navigator !== 'undefined' && /android|iphone|ipad|ipod/i.test(navigator.userAgent)
+// Mobile: heurística compartilhada com WalletModal.tsx (src/utils/device.ts)
+const isMobile = isMobileDevice()
 
 // WalletConnect v2 connector (wagmi/connectors uses @walletconnect/ethereum-provider v2)
 const walletConnectConnector = hasValidProjectId
@@ -46,8 +47,8 @@ const walletConnectConnector = hasValidProjectId
       metadata: {
         name: 'FajuARC',
         description: 'DeFi on Arc Testnet - Swap, Pools, NFTs',
-        url: 'https://fajucar.xyz',
-        icons: ['https://fajucar.xyz/favicon.ico', 'https://fajucar.xyz/vite.svg'],
+        url: 'https://www.fajucar.xyz',
+        icons: ['https://www.fajucar.xyz/favicon.ico'],
       },
     })
   : null
