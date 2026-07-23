@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { isAddress, formatUnits } from 'viem'
+import { isAddress, getAddress, formatUnits } from 'viem'
 import {
   Send, Loader2, CheckCircle2, AlertCircle,
   Copy, Check, QrCode, Twitter, MessageCircle, Share2,
   ArrowDownToLine, ArrowUpFromLine, ChevronDown,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import QRCode from 'react-qr-code'
 import toast from 'react-hot-toast'
 import { useSearchParams } from 'react-router-dom'
 import { usePublicClient } from 'wagmi'
@@ -54,7 +55,7 @@ function formatBalanceDisplay(value: string): string {
 function buildPaymentLink(address: string, amount: string, note: string, tokenSymbol?: string) {
   const base = window.location.origin + window.location.pathname
   const params = new URLSearchParams()
-  params.set('pay', address)
+  params.set('to', address)
   if (amount) params.set('amount', amount)
   if (note) params.set('note', note)
   if (tokenSymbol) params.set('token', tokenSymbol)
@@ -110,26 +111,20 @@ function handleTokenPick(
 // ──────────────────────────────────────────────────
 // Send Tab
 // ──────────────────────────────────────────────────
-function SendTab() {
-  const [searchParams, setSearchParams] = useSearchParams()
+function SendTab({ initialRecipient }: { initialRecipient?: string }) {
+  const [searchParams] = useSearchParams()
   const publicClient = usePublicClient()
   const { data: gasPrice } = useGasPrice()
   const {
     address, isConnected, isPending, isConfirming, isSuccess, txHash: hash, error, sendUsdc, resetTx,
   } = useArcWallet()
 
-  const [recipient, setRecipient] = useState(searchParams.get('pay') ?? '')
+  const [recipient, setRecipient] = useState(initialRecipient ?? '')
   const [amount, setAmount] = useState(searchParams.get('amount') ?? '')
   const [note, setNote] = useState(searchParams.get('note') ?? '')
   const [selectedToken, setSelectedToken] = useState<Token>(() => findTokenBySymbol(searchParams.get('token')))
   const [tokenModalOpen, setTokenModalOpen] = useState(false)
   const [balance, setBalance] = useState('')
-
-  useEffect(() => {
-    if (searchParams.get('pay')) {
-      setSearchParams({}, { replace: true })
-    }
-  }, [])
 
   useEffect(() => {
     if (!address || !publicClient) {
@@ -451,13 +446,9 @@ function ReceiveTab() {
               className="overflow-hidden"
             >
               <div className="mt-3 flex justify-center">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(paymentLink)}&color=22d3ee&bgcolor=0f172a`}
-                  alt={`QR Code — ${selectedToken.symbol}`}
-                  className="rounded-lg border border-slate-700/60"
-                  width={150}
-                  height={150}
-                />
+                <div className="rounded-lg border border-slate-700/60 bg-white p-2">
+                  <QRCode value={paymentLink} size={150} style={{ width: '100%', height: 'auto', maxWidth: '150px' }} />
+                </div>
               </div>
             </motion.div>
           )}
@@ -523,15 +514,54 @@ function ReceiveTab() {
 // ──────────────────────────────────────────────────
 // Main PaymentCard
 // ──────────────────────────────────────────────────
+function InvalidPaymentLink() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full"
+    >
+      <div className="rounded-2xl border border-red-500/20 bg-slate-900/60 backdrop-blur-xl p-8 shadow-2xl text-center space-y-3">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20">
+          <AlertCircle className="h-7 w-7 text-red-400" />
+        </div>
+        <h2 className="text-lg font-bold text-white">Invalid payment link</h2>
+        <p className="text-sm text-slate-400 max-w-sm mx-auto">
+          This link is missing a valid wallet address. Ask the sender for a new payment link.
+        </p>
+      </div>
+    </motion.div>
+  )
+}
+
+const ADDRESS_FORMAT_REGEX = /^0x[a-fA-F0-9]{40}$/
+
 export function PaymentCard() {
   const [searchParams] = useSearchParams()
-  const initialTab: Tab = searchParams.get('pay') ? 'send' : 'receive'
-  const [tab, setTab] = useState<Tab>(initialTab)
+  const to = searchParams.get('to')
+  const toMatchesFormat = !!to && ADDRESS_FORMAT_REGEX.test(to)
 
-  const incomingPay = searchParams.get('pay')
+  let normalizedTo: string | null = null
+  if (toMatchesFormat && to) {
+    try {
+      normalizedTo = getAddress(to)
+    } catch {
+      normalizedTo = to
+    }
+  }
+
+  // TODO: remove — temporary debug log for the 'to' param validation fix
+  console.log('[PaymentCard] to param:', to, '| regex valid:', toMatchesFormat, '| normalized:', normalizedTo)
+
+  const [tab, setTab] = useState<Tab>('send')
+
   const incomingAmount = searchParams.get('amount')
   const incomingNote = searchParams.get('note')
   const incomingToken = findTokenBySymbol(searchParams.get('token'))
+
+  if (!toMatchesFormat) {
+    return <InvalidPaymentLink />
+  }
 
   return (
     <motion.div
@@ -541,7 +571,7 @@ export function PaymentCard() {
     >
       <div className="rounded-2xl border border-cyan-500/20 bg-slate-900/60 backdrop-blur-xl p-5 shadow-2xl shadow-amber-500/5">
         {/* Payment request banner */}
-        {incomingPay && (
+        {to && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -590,7 +620,7 @@ export function PaymentCard() {
             exit={{ opacity: 0, x: tab === 'send' ? 10 : -10 }}
             transition={{ duration: 0.15 }}
           >
-            {tab === 'send' ? <SendTab /> : <ReceiveTab />}
+            {tab === 'send' ? <SendTab initialRecipient={normalizedTo ?? undefined} /> : <ReceiveTab />}
           </motion.div>
         </AnimatePresence>
       </div>

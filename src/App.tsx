@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useTranslation } from 'react-i18next'
 import { Layout } from '@/components/Layout'
@@ -14,6 +14,7 @@ import { MyPoolsPage } from '@/pages/MyPoolsPage'
 import { ArcDexTestPool } from '@/pages/ArcDexTestPool'
 import { FaucetPage } from '@/pages/FaucetPage'
 import { AuthCallback } from '@/pages/AuthCallback'
+import { PaymentCard } from '@/components/Payment/PaymentCard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ConfigErrorBanner } from '@/components/ConfigErrorBanner'
 
@@ -75,6 +76,23 @@ function HomePage() {
       </div>
     )
   }
+}
+
+function NotFoundPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-white mb-2">404 — Page not found</h1>
+        <p className="text-slate-400 mb-6">The page you're looking for doesn't exist.</p>
+        <Link
+          to="/"
+          className="inline-block px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-semibold transition-colors"
+        >
+          Back to home
+        </Link>
+      </div>
+    </div>
+  )
 }
 
 function App() {
@@ -156,7 +174,18 @@ function App() {
                 </ErrorBoundary>
               }
             />
+            <Route
+              path="/pay"
+              element={
+                <ErrorBoundary>
+                  <div className="max-w-md mx-auto">
+                    <PaymentCard />
+                  </div>
+                </ErrorBoundary>
+              }
+            />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </ErrorBoundary>
       </Layout>
