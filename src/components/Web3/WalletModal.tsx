@@ -1,11 +1,8 @@
 import { useMemo, useState, useEffect } from 'react'
-import { usePrivy, useConnectWallet } from '@privy-io/react-auth'
-import { useConnect, useConnectors, useDisconnect } from 'wagmi'
-import { clearWagmiStorage } from '@/lib/wagmiStorage'
-import toast from 'react-hot-toast'
-import { ExternalLink } from 'lucide-react'
-import { WALLETCONNECT_PROJECT_ID } from '@/config/wagmi'
+import { usePrivy, useConnectWallet, type WalletListEntry } from '@privy-io/react-auth'
+import { ExternalLink, Wallet as WalletIcon } from 'lucide-react'
 import { isMobileDevice } from '@/utils/device'
+import { WALLETCONNECT_PROJECT_ID } from '@/config/wagmi'
 import { SocialLoginSection } from './SocialLoginSection'
 
 interface WalletModalProps {
@@ -40,25 +37,35 @@ function isInstalled(check: (p: InjectedProvider) => boolean): boolean {
   })
 }
 
+interface WalletOption {
+  id: string
+  name: string
+  recommended: boolean
+  /** Which Privy-known wallet to jump straight to (skips Privy's own picker
+   *  screen). 'detected_wallets' lets Privy figure out the actual injected
+   *  provider itself — used for wallets Privy has no explicit id for. */
+  privyWalletId: WalletListEntry
+}
+
 export function WalletModal({ isOpen, onClose }: WalletModalProps) {
   const { authenticated } = usePrivy()
-  const { connectAsync, isPending } = useConnect()
-  const { mutateAsync: disconnectAsync } = useDisconnect()
-  const connectors = useConnectors()
   const mobile = isMobileDevice()
-  const [isConnecting, setIsConnecting] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
-  const [walletConnectDisabled, setWalletConnectDisabled] = useState(false)
 
-  // Mobile external-wallet connect: routed through Privy's own connect modal
-  // (supports MetaMask, WalletConnect, Rainbow, OKX — see privyConfig.walletList).
-  // NOT the raw wagmi `injected`/`walletConnect` connectors below — those are
-  // stripped out by @privy-io/wagmi's createConfig (only `mock`-type connectors
-  // survive), so they never register live and the old plain `<a href="https://
-  // link.metamask.io/dapp/...">` deep link was the only thing that "worked" —
-  // by navigating the tab away and leaving a blank page on return. Privy's
-  // modal keeps the current page mounted the whole time.
-  const { connectWallet: openPrivyWalletConnect } = useConnectWallet({
+  // Every external-wallet connection (MetaMask, WalletConnect, Rainbow, OKX,
+  // Rabby...) goes through Privy's own connect-wallet modal — never through
+  // wagmi's `useConnect`/`useConnectors` directly. @privy-io/wagmi's
+  // createConfig (src/config/wagmi.ts) strips any connector whose `.type`
+  // isn't `'mock'` out of the live wagmi config, so the `injected()`/
+  // `walletConnect()` connectors declared there NEVER register live —
+  // clicking a wallet through wagmi's useConnect() always failed with
+  // "Wallet connector not available or not initialized" (desktop) or, on
+  // mobile, fell back to a raw metamask.io deep-link that blanked the page.
+  // Privy's connectWallet() is the one mechanism that actually works here:
+  // on success it syncs the wallet into wagmi itself (see useSyncPrivyWallets
+  // in @privy-io/wagmi, which calls wagmi's reconnect() after a successful
+  // Privy wallet connection) — so useArcWallet() picks it up same as before.
+  const { connectWallet } = useConnectWallet({
     onSuccess: () => onClose(),
     onError: (error) => {
       console.error('[WalletModal] Privy connectWallet error:', error)
@@ -72,227 +79,49 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
     }
   }, [authenticated, isOpen, onClose])
 
-  // Function to reset WalletConnect circuit breaker
-  const resetWalletConnectBreaker = () => {
-    try {
-      localStorage.removeItem('WALLETCONNECT_DISABLED')
-      localStorage.removeItem('walletconnect_disabled')
-      localStorage.removeItem('wc_disabled')
-      sessionStorage.removeItem('walletconnect_disabled')
-      sessionStorage.removeItem('wc_disabled')
-    } catch (err) {
-      console.error('Error resetting circuit breaker:', err)
-    }
-    
-    // Clear local state
-    setConnectError(null)
-    setWalletConnectDisabled(false)
-    
-    // Force re-render to update connectors
-    if (typeof window !== 'undefined') {
-      window.location.reload()
-    }
-  }
-
-  // Check circuit breaker flag on mount and when modal opens
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const disabled = localStorage.getItem('WALLETCONNECT_DISABLED') === '1'
-      setWalletConnectDisabled(disabled)
-    }
-  }, [isOpen])
-
   // Recalcula quando o modal abre (garante detecção atualizada)
-  const wallets = useMemo(() => {
-    // Encontrar WalletConnect connector
-    const wcConnector = connectors.find(c => c.type === 'walletConnect')
-    const hasWalletConnect = !!wcConnector
+  const wallets = useMemo<WalletOption[]>(() => {
+    if (mobile) return []
 
-    const list: Array<{
-      id: string
-      name: string
-      recommended: boolean
-      installed: boolean
-      connector: any
-      type: 'injected' | 'walletConnect'
-      mobileLabel?: string // Label específico para mobile
-    }> = []
+    const hasMetaMask = isInstalled((p) => Boolean(p?.isMetaMask))
+    const hasRabby = isInstalled((p) => Boolean(p?.isRabby))
+    const hasCoinbase = isInstalled((p) => Boolean(p?.isCoinbaseWallet))
+    const hasOkx = isInstalled((p) => Boolean(p?.isOkxWallet))
 
-    if (mobile) {
-      // Mobile external-wallet connect goes through Privy's own modal
-      // (openPrivyWalletConnect) instead of this list — see comment above
-      // the useConnectWallet() call. Building entries here would only
-      // reference wagmi connectors that never register live on this setup.
-    } else {
-      // Desktop: lógica original (detectar instalação de extensões)
-      const hasMetaMask = isInstalled((p) => Boolean(p?.isMetaMask))
-      const hasRabby = isInstalled((p) => Boolean(p?.isRabby))
-      const hasCoinbase = isInstalled((p) => Boolean(p?.isCoinbaseWallet))
-      const hasOkx = isInstalled((p) => Boolean(p?.isOkxWallet))
+    const list: WalletOption[] = []
 
-      // Injected wallets no desktop
-      if (hasMetaMask) {
-        const mmConnector = connectors.find(c => c.id === 'injected' || c.name === 'MetaMask')
-        list.push({
-          id: 'metamask',
-          name: 'MetaMask',
-          recommended: true,
-          installed: hasMetaMask,
-          connector: mmConnector,
-          type: 'injected',
-        })
-      }
+    if (hasMetaMask) {
+      list.push({ id: 'metamask', name: 'MetaMask', recommended: true, privyWalletId: 'metamask' })
+    }
+    if (hasRabby) {
+      list.push({ id: 'rabby', name: 'Rabby Wallet', recommended: false, privyWalletId: 'detected_wallets' })
+    }
+    if (hasCoinbase) {
+      list.push({ id: 'coinbase', name: 'Coinbase Wallet', recommended: false, privyWalletId: 'coinbase_wallet' })
+    }
+    if (hasOkx) {
+      list.push({ id: 'okx', name: 'OKX Wallet', recommended: false, privyWalletId: 'okx_wallet' })
+    }
 
-      if (hasRabby) {
-        const rbConnector = connectors.find(c => c.id === 'injected' || c.name === 'Rabby')
-        list.push({
-          id: 'rabby',
-          name: 'Rabby Wallet',
-          recommended: false,
-          installed: hasRabby,
-          connector: rbConnector,
-          type: 'injected',
-        })
-      }
+    // An injected provider is present but didn't match any known flag above
+    // (some extensions don't set isMetaMask/isRabby/etc.) — let Privy detect it.
+    if (list.length === 0 && getInjectedProviders().length > 0) {
+      list.push({ id: 'injected', name: 'Browser Wallet', recommended: true, privyWalletId: 'detected_wallets' })
+    }
 
-      if (hasCoinbase) {
-        const cbConnector = connectors.find(c => c.id === 'injected' || c.name === 'Coinbase Wallet')
-        list.push({
-          id: 'coinbase',
-          name: 'Coinbase Wallet',
-          recommended: false,
-          installed: hasCoinbase,
-          connector: cbConnector,
-          type: 'injected',
-        })
-      }
-
-      if (hasOkx) {
-        const okxConnector = connectors.find(c => c.id === 'injected' || c.name === 'OKX Wallet')
-        list.push({
-          id: 'okx',
-          name: 'OKX Wallet',
-          recommended: false,
-          installed: hasOkx,
-          connector: okxConnector,
-          type: 'injected',
-        })
-      }
-
-      // WalletConnect no desktop (só se connector existe e projectId configurado)
-      if (hasWalletConnect && wcConnector && WALLETCONNECT_PROJECT_ID && !walletConnectDisabled) {
-        list.push({
-          id: 'walletconnect',
-          name: 'WalletConnect',
-          recommended: false,
-          installed: true,
-          connector: wcConnector,
-          type: 'walletConnect',
-        })
-      }
-
-      // Fallback: se existir window.ethereum mas nenhuma flag foi detectada
-      const hasAnyInjected = getInjectedProviders().length > 0
-      const noneDetected = list.every((w) => w.type !== 'injected' || !w.installed)
-
-      if (hasAnyInjected && noneDetected) {
-        const injectedConnector = connectors.find(c => c.type === 'injected')
-        list.push({
-          id: 'injected',
-          name: 'Injected Wallet (Browser)',
-          recommended: false,
-          installed: true,
-          connector: injectedConnector,
-          type: 'injected',
-        })
-      }
+    if (WALLETCONNECT_PROJECT_ID) {
+      list.push({ id: 'walletconnect', name: 'WalletConnect', recommended: list.length === 0, privyWalletId: 'wallet_connect' })
     }
 
     return list
-  }, [isOpen, connectors, mobile, walletConnectDisabled, WALLETCONNECT_PROJECT_ID])
+  }, [mobile])
 
   if (!isOpen) return null
 
-  const handleConnect = async (wallet: typeof wallets[0]) => {
-    setIsConnecting(true)
+  const handleConnect = (wallet: WalletOption) => {
     setConnectError(null)
-
-    let connectorToUse = wallet.connector
-
-    // WalletConnect: ALWAYS use the explicit walletConnect connector (never injected)
-    if (wallet.type === 'walletConnect') {
-      const wcConnector = connectors.find((c) => c.type === 'walletConnect')
-      if (!wcConnector || !WALLETCONNECT_PROJECT_ID) {
-        const errorMsg = 'WalletConnect is not configured. Add VITE_WALLETCONNECT_PROJECT_ID to your env.'
-        setConnectError(errorMsg)
-        toast.error('WalletConnect not configured')
-        setIsConnecting(false)
-        return
-      }
-      connectorToUse = wcConnector
-    }
-
-    if (!connectorToUse || !connectorToUse.id) {
-      const errorMsg = 'Wallet connector not available or not initialized'
-      setConnectError(errorMsg)
-      toast.error('Connector not available')
-      setIsConnecting(false)
-      return
-    }
-    
-    if (!mobile && !wallet.installed) {
-      setIsConnecting(false)
-      return
-    }
-    
-    try {
-      console.log('[WalletModal] Connecting with connector:', connectorToUse.type, connectorToUse.id)
-      try {
-        await disconnectAsync()
-      } catch {
-        // Ignore - may not be connected
-      }
-      await connectAsync({ connector: connectorToUse })
-      console.log('[WalletModal] Connection successful')
-      // Only close modal on successful connection
-      onClose()
-    } catch (err: any) {
-      // Don't close modal on error (better UX)
-      const errorMessage = err?.shortMessage || err?.message || err?.toString() || 'Connection failed'
-      const errorString = errorMessage.toLowerCase()
-
-      // "Connector already connected" = state mismatch (wagmi thinks connected, UI doesn't)
-      if (errorString.includes('connector') && errorString.includes('already connected')) {
-        setConnectError('Connection in invalid state. Click "Reset and connect" to fix it.')
-        setIsConnecting(false)
-        return
-      }
-      
-      // Circuit breaker: detect "init" errors and disable WalletConnect
-      if (connectorToUse.type === 'walletConnect' && 
-          (errorString.includes("reading 'init'") || 
-           errorString.includes("reading \"init\"") ||
-           errorString.includes('.init') ||
-           errorString.includes('init is not a function'))) {
-        console.error('[WalletModal] WalletConnect init error detected, disabling WalletConnect')
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('WALLETCONNECT_DISABLED', '1')
-          setWalletConnectDisabled(true)
-        }
-        const circuitBreakerMsg = 'WalletConnect failed on this device. Use MetaMask in-app browser or another wallet. You can re-enable by clearing the site cache.'
-        setConnectError(circuitBreakerMsg)
-        toast.error('WalletConnect disabled due to error')
-      } else {
-        setConnectError(errorMessage)
-        toast.error(errorMessage)
-      }
-      console.error('[WalletModal] Wallet connect error:', err)
-    } finally {
-      setIsConnecting(false)
-    }
+    connectWallet({ preSelectedWalletId: wallet.privyWalletId })
   }
-
-  if (!isOpen) return null
 
   return (
     // Overlay (clique fora fecha)
@@ -300,8 +129,8 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
       {/* Painel: full-screen no mobile, centralizado no desktop */}
       <div
         className={`
-          ${mobile 
-            ? 'fixed inset-0 m-0 rounded-none' 
+          ${mobile
+            ? 'fixed inset-0 m-0 rounded-none'
             : 'absolute right-6 top-16 w-full max-w-md rounded-xl'
           }
           bg-slate-900 text-white shadow-xl border border-slate-700
@@ -340,7 +169,7 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
           {mobile && (
             <button
               type="button"
-              onClick={() => openPrivyWalletConnect()}
+              onClick={() => connectWallet()}
               className="mb-4 w-full flex items-center gap-3 p-4 rounded-xl bg-[#f6851b]/15 border-2 border-[#f6851b]/40 hover:bg-[#f6851b]/25 transition-colors text-left"
             >
               <div className="shrink-0 w-10 h-10 rounded-full bg-[#f6851b]/30 flex items-center justify-center">
@@ -354,115 +183,54 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
             </button>
           )}
 
-          {!mobile && walletConnectDisabled && (
-            <div className="mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
-              <p className="text-sm font-medium text-red-300 mb-1">WalletConnect disabled</p>
-              <p className="text-xs text-red-200/80 mb-3">
-                WalletConnect failed on this device. Use MetaMask in-app browser or another wallet.
-              </p>
-              <button
-                onClick={resetWalletConnectBreaker}
-                className="px-4 py-2 rounded border border-red-500/50 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-colors text-sm font-medium"
-              >
-                Try again
-              </button>
+          {!mobile && (
+            <div className="space-y-3">
+              {wallets.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <p className="font-semibold text-slate-300 mb-2">No Wallets Available</p>
+                  <p className="text-sm mt-2">
+                    Please install a wallet extension like MetaMask, or use social login above.
+                  </p>
+                </div>
+              ) : (
+                wallets.map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() => handleConnect(w)}
+                    className={[
+                      'w-full rounded-lg border px-4 py-3 text-left transition',
+                      'border-slate-700 hover:border-slate-500 hover:bg-slate-800 active:scale-[0.98]',
+                      w.recommended ? 'border-cyan-500/50 bg-cyan-500/5' : '',
+                    ].join(' ')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <WalletIcon className="h-4 w-4 text-slate-400" />
+                          <span className="font-medium">{w.name}</span>
+                          {w.recommended && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
+                              Recommended
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-sm text-slate-400">
+                          {w.id === 'walletconnect' ? 'Connect via QR code or deep link' : 'Installed'}
+                        </span>
+                      </div>
+
+                      <span className="text-slate-400">↗</span>
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           )}
-          
-          <div className="space-y-3">
-            {mobile ? null : wallets.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                {walletConnectDisabled ? (
-                  <>
-                    <p className="font-semibold text-red-400 mb-2">WalletConnect disabled</p>
-                    <p className="text-sm mb-2">WalletConnect failed on this device.</p>
-                    <p className="text-xs text-slate-500 mb-3">
-                      Use the MetaMask browser or another wallet.
-                    </p>
-                    <button
-                      onClick={resetWalletConnectBreaker}
-                      className="px-4 py-2 rounded border border-red-500/50 bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-colors text-sm font-medium"
-                    >
-                      Try again
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-semibold text-slate-300 mb-2">No Wallets Available</p>
-                    <p className="text-sm mt-2">
-                      Please install a wallet extension like MetaMask or Rabby.
-                    </p>
-                  </>
-                )}
-              </div>
-            ) : (
-              wallets.map((w) => {
-                // No mobile, sempre habilitar (não filtrar por installed)
-                const isDisabled = isConnecting || (mobile ? false : (isPending || !w.installed))
-                const isInstalledOrMobile = mobile ? true : w.installed
-                
-                return (
-                <button
-                  key={w.id}
-                  onClick={() => handleConnect(w)}
-                  disabled={isDisabled}
-                  className={[
-                    'w-full rounded-lg border px-4 py-3 text-left transition',
-                    isInstalledOrMobile && !isConnecting
-                      ? 'border-slate-700 hover:border-slate-500 hover:bg-slate-800 active:scale-[0.98]'
-                      : 'cursor-not-allowed border-slate-800 bg-slate-950/40 opacity-70',
-                    w.recommended && isInstalledOrMobile ? 'border-cyan-500/50 bg-cyan-500/5' : '',
-                  ].join(' ')}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{w.name}</span>
-                        {w.recommended && (
-                          <span className="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400">
-                            Recommended
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-sm text-slate-400">
-                        {isConnecting
-                          ? 'Connecting...'
-                          : mobile && w.mobileLabel
-                            ? w.mobileLabel
-                            : w.installed
-                              ? w.type === 'walletConnect'
-                                ? 'Connect via QR code or deep link'
-                                : 'Installed'
-                              : 'Not installed'}
-                      </span>
-                    </div>
 
-                    <span className="text-slate-400">↗</span>
-                  </div>
-                </button>
-                )
-              })
-            )}
-          </div>
-          
           {/* Error message */}
           {connectError && (
-            <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 space-y-2">
+            <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
               <p className="text-sm text-red-400">{connectError}</p>
-              {(connectError.includes('Reset and connect') || connectError.toLowerCase().includes('already connected')) && (
-                <button
-                  onClick={() => {
-                    clearWagmiStorage()
-                    setConnectError(null)
-                    onClose()
-                    toast.success('Connection reset. Try connecting again.')
-                    window.location.reload()
-                  }}
-                  className="w-full py-2 rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-amber-500/30 border border-cyan-500/40 text-sm font-medium"
-                >
-                  Reset and connect
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -471,10 +239,9 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
         <div className={`border-t border-slate-700 ${mobile ? 'p-4' : 'p-4'}`}>
           <button
             onClick={onClose}
-            disabled={isConnecting}
-            className="w-full rounded-lg border border-slate-700 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-lg border border-slate-700 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
           >
-            {isConnecting ? 'Connecting...' : 'Cancel'}
+            Cancel
           </button>
         </div>
       </div>
