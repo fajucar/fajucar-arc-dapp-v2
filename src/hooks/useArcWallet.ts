@@ -1,11 +1,41 @@
 import { useState, useCallback } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
-import { createWalletClient, custom, parseUnits, type WalletClient } from 'viem'
+import { createWalletClient, custom, getAddress, parseUnits, type WalletClient } from 'viem'
 import { arcTestnet } from '@/config/chains'
 import { arcTestnet as privyArcTestnet } from '@/config/privy'
 import { CONSTANTS } from '@/config/constants'
 import { usePersistedPrivyWalletAddress } from './usePersistedPrivyWalletAddress'
+
+const CHAIN_ID_HEX = `0x${arcTestnet.id.toString(16)}`
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms)
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value) },
+      (err) => { clearTimeout(timer); reject(err) },
+    )
+  })
+}
+
+async function ensureInjectedChain(eth: any): Promise<void> {
+  try {
+    await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID_HEX }] })
+  } catch (err: any) {
+    if (err?.code !== 4902) throw err
+    await eth.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: CHAIN_ID_HEX,
+        chainName: arcTestnet.name,
+        nativeCurrency: arcTestnet.nativeCurrency,
+        rpcUrls: [...arcTestnet.rpcUrls.default.http],
+        blockExplorerUrls: [arcTestnet.blockExplorers.default.url],
+      }],
+    })
+  }
+}
 
 const USDC_ABI = [
   {
@@ -45,6 +75,15 @@ export interface ArcWalletState {
   getWalletClient: () => Promise<WalletClient | null>
   sendUsdc: (to: string, amountUsdc: string) => Promise<void>
   resetTx: () => void
+  /**
+   * Explicit, user-triggered fallback for when the page is already running
+   * inside a wallet's own in-app browser (MetaMask, Trust, etc.) and going
+   * through Privy's connect-wallet modal isn't reliable there (its iframe-based
+   * auth can hang in restrictive in-app webviews). Talks to `window.ethereum`
+   * directly. NEVER called automatically — only wire it to a button's onClick.
+   * Times out on its own so it can never hang the UI forever.
+   */
+  connectInjected: () => Promise<void>
 }
 
 /**
@@ -100,8 +139,17 @@ export function useArcWallet(): ArcWalletState {
     | { email?: string; name?: string }
     | undefined
 
+  // Raw-injected fallback: only ever set by an explicit connectInjected() call
+  // (see below) — never touched on mount, never inferred from wagmi/Privy state.
+  const [injectedAddress, setInjectedAddress] = useState<`0x${string}` | undefined>()
+  const [injectedPending, setInjectedPending] = useState(false)
+  const [injectedError, setInjectedError] = useState<Error | null>(null)
+  const hasInjectedConnection = !wagmiConnected && !authenticated && !!injectedAddress
+
   const signingAddress = useWagmiForSigning
     ? wagmiAddress
+    : hasInjectedConnection
+    ? injectedAddress
     : signingPrivyWallet?.address
     ? (signingPrivyWallet.address as `0x${string}`)
     : persistedPrivyAddress
@@ -110,16 +158,18 @@ export function useArcWallet(): ArcWalletState {
 
   const address: `0x${string}` | undefined = useWagmiForSigning
     ? wagmiAddress
+    : hasInjectedConnection
+    ? injectedAddress
     : (embeddedWallet?.address as `0x${string}` | undefined) ??
       persistedPrivyAddress ??
       signingAddress ??
       (user?.wallet?.address as `0x${string}` | undefined)
 
-  const isConnected = wagmiConnected || authenticated
+  const isConnected = wagmiConnected || authenticated || hasInjectedConnection
   const hasEmbeddedWallet = !!embeddedWallet?.address
   const authMethod: AuthMethod = authenticated
     ? (hasExternalWallet ? 'wallet' : 'social')
-    : (wagmiConnected ? 'wallet' : 'none')
+    : (wagmiConnected || hasInjectedConnection ? 'wallet' : 'none')
   const pendingGoogleWallet = authenticated && !hasEmbeddedWallet && !wagmiConnected
   const isGoogleLogin = authMethod === 'social' && !!googleAccount
 
@@ -158,8 +208,31 @@ export function useArcWallet(): ArcWalletState {
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash, query: { enabled: !!txHash } })
 
-  const isPending = authMethod === 'wallet' ? wagmiPending : privyPending
-  const error = authMethod === 'wallet' ? wagmiError : privyError
+  const isPending = hasInjectedConnection ? injectedPending : authMethod === 'wallet' ? wagmiPending : privyPending
+  const error = hasInjectedConnection ? injectedError : authMethod === 'wallet' ? wagmiError : privyError
+
+  const connectInjected = useCallback(async (): Promise<void> => {
+    const eth = typeof window !== 'undefined' ? (window as any).ethereum : undefined
+    if (!eth) throw new Error('No wallet provider found in this browser.')
+    setInjectedPending(true)
+    setInjectedError(null)
+    try {
+      const accounts = await withTimeout(
+        eth.request({ method: 'eth_requestAccounts' }) as Promise<string[]>,
+        15000,
+        'Wallet did not respond in time. Try again or use another method.',
+      )
+      const raw = accounts?.[0]
+      if (!raw) throw new Error('No account returned by the wallet.')
+      setInjectedAddress(getAddress(raw) as `0x${string}`)
+    } catch (err) {
+      const e = err instanceof Error ? err : new Error(String(err))
+      setInjectedError(e)
+      throw e
+    } finally {
+      setInjectedPending(false)
+    }
+  }, [])
 
   const getWalletClient = useCallback(async (): Promise<WalletClient | null> => {
     const wallet = useWagmiForSigning ? null : signingPrivyWallet
@@ -213,7 +286,34 @@ export function useArcWallet(): ArcWalletState {
 
     const amount = parseUnits(amountUsdc, 6)
 
-    if (authMethod === 'wallet' && wagmiAddress) {
+    if (hasInjectedConnection && injectedAddress) {
+      const eth = (window as any).ethereum
+      setInjectedPending(true)
+      setInjectedError(null)
+      try {
+        await ensureInjectedChain(eth)
+        const client = createWalletClient({
+          account: injectedAddress,
+          chain: arcTestnet,
+          transport: custom(eth),
+        })
+        const hash = await client.writeContract({
+          address: CONSTANTS.USDC_ADDRESS,
+          abi: USDC_ABI,
+          functionName: 'transfer',
+          args: [to as `0x${string}`, amount],
+          account: injectedAddress,
+          chain: arcTestnet,
+        })
+        setTxHash(hash)
+      } catch (err) {
+        const e = err instanceof Error ? err : new Error(String(err))
+        setInjectedError(e)
+        throw e
+      } finally {
+        setInjectedPending(false)
+      }
+    } else if (authMethod === 'wallet' && wagmiAddress) {
       const hash = await writeContractAsync({
         address: CONSTANTS.USDC_ADDRESS,
         abi: USDC_ABI,
@@ -240,6 +340,7 @@ export function useArcWallet(): ArcWalletState {
   const resetTx = () => {
     setTxHash(undefined)
     setPrivyError(null)
+    setInjectedError(null)
     if (authMethod === 'wallet') wagmiReset()
   }
 
@@ -263,5 +364,6 @@ export function useArcWallet(): ArcWalletState {
     getWalletClient,
     sendUsdc,
     resetTx,
+    connectInjected,
   }
 }

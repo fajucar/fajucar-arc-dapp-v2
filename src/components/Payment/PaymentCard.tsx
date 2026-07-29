@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { isAddress, getAddress, formatUnits } from 'viem'
 import {
-  Send, Loader2, CheckCircle2, AlertCircle,
+  Send, Loader2, CheckCircle2, AlertCircle, Wallet,
   Copy, Check, QrCode, Twitter, MessageCircle, Share2,
   ArrowDownToLine, ArrowUpFromLine, ChevronDown,
 } from 'lucide-react'
@@ -14,6 +14,8 @@ import { CONSTANTS } from '@/config/constants'
 import { ARC_TESTNET_TOKENS } from '@/config/tokens.arc-testnet'
 import { useGasPrice } from '@/hooks/useGasPrice'
 import { useArcWallet } from '@/hooks/useArcWallet'
+import { useWalletModal } from '@/contexts/WalletModalContext'
+import { isInjectedWalletBrowser } from '@/utils/device'
 import { TokenSelectModal, type TokenSelectItem } from '@/components/TokenSelect/TokenSelectModal'
 
 type Tab = 'send' | 'receive'
@@ -109,6 +111,61 @@ function handleTokenPick(
 }
 
 // ──────────────────────────────────────────────────
+// Connect chooser — shown only after the page has fully rendered, and only
+// acts on explicit tap. Never called on mount / auto-triggered.
+// ──────────────────────────────────────────────────
+function ConnectChooser({ label }: { label: string }) {
+  const { openModal } = useWalletModal()
+  const { connectInjected } = useArcWallet()
+  const [connecting, setConnecting] = useState(false)
+  const [connectError, setConnectError] = useState<string | null>(null)
+  // Computed at render time (CSR-only app, no SSR) — same pattern as
+  // isMobileDevice() elsewhere in the codebase.
+  const inWalletBrowser = isInjectedWalletBrowser()
+
+  const handleConnectInjected = async () => {
+    setConnecting(true)
+    setConnectError(null)
+    try {
+      await connectInjected()
+    } catch (err: any) {
+      setConnectError(err?.message || 'Could not connect. Try again or use another method.')
+    } finally {
+      setConnecting(false)
+    }
+  }
+
+  return (
+    <div className="text-center py-8 space-y-3">
+      <p className="text-slate-400 text-sm">{label}</p>
+      <div className="space-y-2 max-w-xs mx-auto">
+        {inWalletBrowser && (
+          <button
+            type="button"
+            onClick={handleConnectInjected}
+            disabled={connecting}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+          >
+            {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+            {connecting ? 'Connecting…' : 'Connect this wallet'}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={openModal}
+          className="w-full rounded-xl border border-slate-700 bg-slate-800/50 px-4 py-3 text-sm text-slate-200 hover:border-cyan-500/40 hover:bg-slate-800/80 transition-all"
+        >
+          {inWalletBrowser ? 'Use social login instead' : 'Choose how to pay'}
+        </button>
+      </div>
+      {connectError && (
+        <p className="text-xs text-red-400 max-w-xs mx-auto">{connectError}</p>
+      )}
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────────
 // Send Tab
 // ──────────────────────────────────────────────────
 function SendTab({ initialRecipient }: { initialRecipient?: string }) {
@@ -181,11 +238,7 @@ function SendTab({ initialRecipient }: { initialRecipient?: string }) {
   }
 
   if (!isConnected) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-slate-400 text-sm">Connect your wallet to send tokens</p>
-      </div>
-    )
+    return <ConnectChooser label="Choose how you'd like to pay" />
   }
 
   if (isSuccess && hash) {
@@ -379,11 +432,7 @@ function ReceiveTab() {
   }
 
   if (!isConnected) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-slate-400 text-sm">Connect your wallet to generate your payment link</p>
-      </div>
-    )
+    return <ConnectChooser label="Connect to generate your payment link" />
   }
 
   return (
