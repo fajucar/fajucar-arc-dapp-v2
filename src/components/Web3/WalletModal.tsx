@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivy, useConnectWallet } from '@privy-io/react-auth'
 import { useConnect, useConnectors, useDisconnect } from 'wagmi'
 import { clearWagmiStorage } from '@/lib/wagmiStorage'
 import toast from 'react-hot-toast'
@@ -49,6 +49,22 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
   const [isConnecting, setIsConnecting] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
   const [walletConnectDisabled, setWalletConnectDisabled] = useState(false)
+
+  // Mobile external-wallet connect: routed through Privy's own connect modal
+  // (supports MetaMask, WalletConnect, Rainbow, OKX — see privyConfig.walletList).
+  // NOT the raw wagmi `injected`/`walletConnect` connectors below — those are
+  // stripped out by @privy-io/wagmi's createConfig (only `mock`-type connectors
+  // survive), so they never register live and the old plain `<a href="https://
+  // link.metamask.io/dapp/...">` deep link was the only thing that "worked" —
+  // by navigating the tab away and leaving a blank page on return. Privy's
+  // modal keeps the current page mounted the whole time.
+  const { connectWallet: openPrivyWalletConnect } = useConnectWallet({
+    onSuccess: () => onClose(),
+    onError: (error) => {
+      console.error('[WalletModal] Privy connectWallet error:', error)
+      setConnectError('Wallet connection failed or was cancelled. You can try again or use social login.')
+    },
+  })
 
   useEffect(() => {
     if (authenticated && isOpen) {
@@ -103,79 +119,10 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
     }> = []
 
     if (mobile) {
-      // On mobile: prioritize WalletConnect if available, but always show injected wallets as fallback
-      if (hasWalletConnect && wcConnector && WALLETCONNECT_PROJECT_ID && !walletConnectDisabled) {
-        // WalletConnect is enabled: show WalletConnect options
-        // Main WalletConnect option
-        list.push({
-          id: 'walletconnect',
-          name: 'WalletConnect',
-          recommended: true,
-          installed: true,
-          connector: wcConnector,
-          type: 'walletConnect',
-          mobileLabel: 'Open your installed wallet',
-        })
-
-        // Wallet-specific options via WalletConnect
-        // These will open the specific wallet app via deep link
-        list.push({
-          id: 'metamask-wc',
-          name: 'MetaMask',
-          recommended: false,
-          installed: true,
-          connector: wcConnector,
-          type: 'walletConnect',
-          mobileLabel: 'Open via WalletConnect',
-        })
-
-        list.push({
-          id: 'coinbase-wc',
-          name: 'Coinbase Wallet',
-          recommended: false,
-          installed: true,
-          connector: wcConnector,
-          type: 'walletConnect',
-          mobileLabel: 'Open via WalletConnect',
-        })
-
-        list.push({
-          id: 'okx-wc',
-          name: 'OKX Wallet',
-          recommended: false,
-          installed: true,
-          connector: wcConnector,
-          type: 'walletConnect',
-          mobileLabel: 'Open via WalletConnect',
-        })
-
-        list.push({
-          id: 'rabby-wc',
-          name: 'Rabby Wallet',
-          recommended: false,
-          installed: true,
-          connector: wcConnector,
-          type: 'walletConnect',
-          mobileLabel: 'Open via WalletConnect',
-        })
-      }
-      
-      // Always show injected wallets on mobile as fallback (when WalletConnect not configured or disabled)
-      const injectedConnector = connectors.find(c => c.type === 'injected')
-      if (injectedConnector) {
-        // Only add if not already added via WalletConnect
-        if (!list.find(w => w.id === 'metamask-injected')) {
-          list.push({
-            id: 'metamask-injected',
-            name: 'MetaMask',
-            recommended: !hasWalletConnect || !WALLETCONNECT_PROJECT_ID || walletConnectDisabled, // Recommended if WalletConnect not available
-            installed: true,
-            connector: injectedConnector,
-            type: 'injected',
-            mobileLabel: 'Use MetaMask in-app browser',
-          })
-        }
-      }
+      // Mobile external-wallet connect goes through Privy's own modal
+      // (openPrivyWalletConnect) instead of this list — see comment above
+      // the useConnectWallet() call. Building entries here would only
+      // reference wagmi connectors that never register live on this setup.
     } else {
       // Desktop: lógica original (detectar instalação de extensões)
       const hasMetaMask = isInstalled((p) => Boolean(p?.isMetaMask))
@@ -386,26 +333,28 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
             <div className="flex-1 h-px bg-slate-700/70" />
           </div>
 
-          {/* When projectId missing: show clear message (devs see console.warn from wagmi) */}
+          {/* Mobile: hand off to Privy's own connect modal (MetaMask, WalletConnect,
+              Rainbow, OKX — see privyConfig.walletList). This stays inside the app —
+              no full-page navigation to a metamask.io deep link that can blank the
+              page on return. */}
           {mobile && (
-            <a
-              href={`https://link.metamask.io/dapp/${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'https://fajuarc.xyz')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mb-4 flex items-center gap-3 p-4 rounded-xl bg-[#f6851b]/15 border-2 border-[#f6851b]/40 hover:bg-[#f6851b]/25 transition-colors"
+            <button
+              type="button"
+              onClick={() => openPrivyWalletConnect()}
+              className="mb-4 w-full flex items-center gap-3 p-4 rounded-xl bg-[#f6851b]/15 border-2 border-[#f6851b]/40 hover:bg-[#f6851b]/25 transition-colors text-left"
             >
               <div className="shrink-0 w-10 h-10 rounded-full bg-[#f6851b]/30 flex items-center justify-center">
                 <ExternalLink className="h-5 w-5 text-[#f6851b]" />
               </div>
               <div className="flex-1 text-left">
-                <p className="font-semibold text-white">Open in MetaMask</p>
-                <p className="text-xs text-slate-400 mt-0.5">Best option on mobile. Opens this site in MetaMask&apos;s built-in browser.</p>
+                <p className="font-semibold text-white">Connect external wallet</p>
+                <p className="text-xs text-slate-400 mt-0.5">MetaMask, WalletConnect, Rainbow, OKX and more.</p>
               </div>
               <span className="text-[#f6851b] shrink-0">→</span>
-            </a>
+            </button>
           )}
 
-          {walletConnectDisabled && (
+          {!mobile && walletConnectDisabled && (
             <div className="mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
               <p className="text-sm font-medium text-red-300 mb-1">WalletConnect disabled</p>
               <p className="text-xs text-red-200/80 mb-3">
@@ -421,7 +370,7 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
           )}
           
           <div className="space-y-3">
-            {wallets.length === 0 ? (
+            {mobile ? null : wallets.length === 0 ? (
               <div className="text-center py-8 text-slate-400">
                 {walletConnectDisabled ? (
                   <>
@@ -441,9 +390,7 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
                   <>
                     <p className="font-semibold text-slate-300 mb-2">No Wallets Available</p>
                     <p className="text-sm mt-2">
-                      {mobile
-                        ? 'Tap "Open in MetaMask" above to connect, or install MetaMask from the app store.'
-                        : 'Please install a wallet extension like MetaMask or Rabby.'}
+                      Please install a wallet extension like MetaMask or Rabby.
                     </p>
                   </>
                 )}
