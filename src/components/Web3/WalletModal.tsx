@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect } from 'react'
 import { usePrivy, useConnectWallet, type WalletListEntry } from '@privy-io/react-auth'
-import { ExternalLink, Wallet as WalletIcon } from 'lucide-react'
+import { ExternalLink, Wallet as WalletIcon, Loader2 } from 'lucide-react'
 import { isMobileDevice } from '@/utils/device'
 import { WALLETCONNECT_PROJECT_ID } from '@/config/wagmi'
+import { useArcWallet } from '@/hooks/useArcWallet'
 import { SocialLoginSection } from './SocialLoginSection'
 
 interface WalletModalProps {
@@ -49,22 +50,32 @@ interface WalletOption {
 
 export function WalletModal({ isOpen, onClose }: WalletModalProps) {
   const { authenticated } = usePrivy()
+  const { connectWalletConnect } = useArcWallet()
   const mobile = isMobileDevice()
   const [connectError, setConnectError] = useState<string | null>(null)
+  const [connectingWc, setConnectingWc] = useState(false)
 
-  // Every external-wallet connection (MetaMask, WalletConnect, Rainbow, OKX,
-  // Rabby...) goes through Privy's own connect-wallet modal — never through
-  // wagmi's `useConnect`/`useConnectors` directly. @privy-io/wagmi's
-  // createConfig (src/config/wagmi.ts) strips any connector whose `.type`
-  // isn't `'mock'` out of the live wagmi config, so the `injected()`/
-  // `walletConnect()` connectors declared there NEVER register live —
-  // clicking a wallet through wagmi's useConnect() always failed with
-  // "Wallet connector not available or not initialized" (desktop) or, on
-  // mobile, fell back to a raw metamask.io deep-link that blanked the page.
-  // Privy's connectWallet() is the one mechanism that actually works here:
-  // on success it syncs the wallet into wagmi itself (see useSyncPrivyWallets
-  // in @privy-io/wagmi, which calls wagmi's reconnect() after a successful
-  // Privy wallet connection) — so useArcWallet() picks it up same as before.
+  // Desktop external-wallet connections (MetaMask, Rabby, Coinbase, OKX) go
+  // through Privy's own connect-wallet modal — never through wagmi's
+  // `useConnect`/`useConnectors` directly. @privy-io/wagmi's createConfig
+  // (src/config/wagmi.ts) strips any connector whose `.type` isn't `'mock'`
+  // out of the live wagmi config, so the `injected()`/`walletConnect()`
+  // connectors declared there NEVER register live — clicking a wallet through
+  // wagmi's useConnect() always failed with "Wallet connector not available
+  // or not initialized". Privy's connectWallet() works here on desktop: on
+  // success it syncs the wallet into wagmi itself (see useSyncPrivyWallets in
+  // @privy-io/wagmi, which calls wagmi's reconnect() after a successful Privy
+  // wallet connection) — so useArcWallet() picks it up same as before.
+  //
+  // Mobile is different: Privy's connect UI itself runs inside a cross-origin
+  // iframe (auth.privy.io per the CSP frame-src). An iframe can't reliably
+  // trigger the OS-level "open this wallet app" hand-off on mobile, so
+  // picking e.g. MetaMask there just hangs on "Connecting to MetaMask..."
+  // forever. For mobile we bypass Privy entirely and drive
+  // `@walletconnect/ethereum-provider` directly at the page's top level (see
+  // connectWalletConnect() in useArcWallet.ts) — its QR/deep-link modal
+  // (@reown/appkit) can actually redirect into the wallet app and back, same
+  // as most dApps did before Privy was introduced.
   const { connectWallet } = useConnectWallet({
     onSuccess: () => onClose(),
     onError: (error) => {
@@ -72,6 +83,19 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
       setConnectError('Wallet connection failed or was cancelled. You can try again or use social login.')
     },
   })
+
+  const handleMobileExternalConnect = async () => {
+    setConnectError(null)
+    setConnectingWc(true)
+    try {
+      await connectWalletConnect()
+      onClose()
+    } catch (err: any) {
+      setConnectError(err?.message || 'Wallet connection failed or was cancelled. You can try again or use social login.')
+    } finally {
+      setConnectingWc(false)
+    }
+  }
 
   useEffect(() => {
     if (authenticated && isOpen) {
@@ -162,24 +186,28 @@ export function WalletModal({ isOpen, onClose }: WalletModalProps) {
             <div className="flex-1 h-px bg-slate-700/70" />
           </div>
 
-          {/* Mobile: hand off to Privy's own connect modal (MetaMask, WalletConnect,
-              Rainbow, OKX — see privyConfig.walletList). This stays inside the app —
-              no full-page navigation to a metamask.io deep link that can blank the
-              page on return. */}
+          {/* Mobile: WalletConnect, driven directly (not through Privy's iframe — see
+              comment above). Opens a QR/deep-link modal that hands off to the wallet
+              app itself and returns here once the user approves. */}
           {mobile && (
             <button
               type="button"
-              onClick={() => connectWallet()}
-              className="mb-4 w-full flex items-center gap-3 p-4 rounded-xl bg-[#f6851b]/15 border-2 border-[#f6851b]/40 hover:bg-[#f6851b]/25 transition-colors text-left"
+              onClick={handleMobileExternalConnect}
+              disabled={connectingWc}
+              className="mb-4 w-full flex items-center gap-3 p-4 rounded-xl bg-[#f6851b]/15 border-2 border-[#f6851b]/40 hover:bg-[#f6851b]/25 disabled:opacity-70 disabled:cursor-not-allowed transition-colors text-left"
             >
               <div className="shrink-0 w-10 h-10 rounded-full bg-[#f6851b]/30 flex items-center justify-center">
-                <ExternalLink className="h-5 w-5 text-[#f6851b]" />
+                {connectingWc
+                  ? <Loader2 className="h-5 w-5 text-[#f6851b] animate-spin" />
+                  : <ExternalLink className="h-5 w-5 text-[#f6851b]" />}
               </div>
               <div className="flex-1 text-left">
-                <p className="font-semibold text-white">Connect external wallet</p>
-                <p className="text-xs text-slate-400 mt-0.5">MetaMask, WalletConnect, Rainbow, OKX and more.</p>
+                <p className="font-semibold text-white">{connectingWc ? 'Connecting…' : 'Connect external wallet'}</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {connectingWc ? 'Approve in your wallet app, then come back here.' : 'MetaMask, and 300+ wallets via WalletConnect.'}
+                </p>
               </div>
-              <span className="text-[#f6851b] shrink-0">→</span>
+              {!connectingWc && <span className="text-[#f6851b] shrink-0">→</span>}
             </button>
           )}
 

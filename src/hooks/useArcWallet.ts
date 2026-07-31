@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
-import { createWalletClient, custom, getAddress, parseUnits, type WalletClient } from 'viem'
+import { createWalletClient, custom, getAddress, parseUnits, type WalletClient, type EIP1193Provider } from 'viem'
 import { arcTestnet } from '@/config/chains'
 import { arcTestnet as privyArcTestnet } from '@/config/privy'
 import { CONSTANTS } from '@/config/constants'
+import { WALLETCONNECT_PROJECT_ID } from '@/config/wagmi'
 import { usePersistedPrivyWalletAddress } from './usePersistedPrivyWalletAddress'
 
 const CHAIN_ID_HEX = `0x${arcTestnet.id.toString(16)}`
@@ -84,6 +85,18 @@ export interface ArcWalletState {
    * Times out on its own so it can never hang the UI forever.
    */
   connectInjected: () => Promise<void>
+  /**
+   * Explicit, user-triggered WalletConnect fallback — bypasses Privy's
+   * connect-wallet modal entirely. Privy's modal runs inside a cross-origin
+   * iframe (auth.privy.io); on mobile that iframe context can't reliably
+   * trigger the OS-level deep link into a wallet app, so it hangs on
+   * "Connecting...". This talks to `@walletconnect/ethereum-provider`
+   * directly at the top level of the page — same tech, but the WalletConnect
+   * modal it opens (via @reown/appkit) shows a real QR on desktop and a
+   * proper "open in wallet app" deep link on mobile, exactly like most
+   * dApps before Privy was introduced. NEVER called automatically.
+   */
+  connectWalletConnect: () => Promise<void>
 }
 
 /**
@@ -139,16 +152,21 @@ export function useArcWallet(): ArcWalletState {
     | { email?: string; name?: string }
     | undefined
 
-  // Raw-injected fallback: only ever set by an explicit connectInjected() call
-  // (see below) — never touched on mount, never inferred from wagmi/Privy state.
+  // External-wallet fallback: only ever set by an explicit connectInjected()
+  // or connectWalletConnect() call (see below) — never touched on mount,
+  // never inferred from wagmi/Privy state. Both write into the same address/
+  // pending/error state; `fallbackProviderRef` holds whichever raw EIP-1193
+  // provider is actually behind it (window.ethereum, or the WalletConnect
+  // EthereumProvider instance) so sendUsdc can sign through either uniformly.
   const [injectedAddress, setInjectedAddress] = useState<`0x${string}` | undefined>()
   const [injectedPending, setInjectedPending] = useState(false)
   const [injectedError, setInjectedError] = useState<Error | null>(null)
-  const hasInjectedConnection = !wagmiConnected && !authenticated && !!injectedAddress
+  const fallbackProviderRef = useRef<EIP1193Provider | null>(null)
+  const hasFallbackConnection = !wagmiConnected && !authenticated && !!injectedAddress
 
   const signingAddress = useWagmiForSigning
     ? wagmiAddress
-    : hasInjectedConnection
+    : hasFallbackConnection
     ? injectedAddress
     : signingPrivyWallet?.address
     ? (signingPrivyWallet.address as `0x${string}`)
@@ -158,18 +176,18 @@ export function useArcWallet(): ArcWalletState {
 
   const address: `0x${string}` | undefined = useWagmiForSigning
     ? wagmiAddress
-    : hasInjectedConnection
+    : hasFallbackConnection
     ? injectedAddress
     : (embeddedWallet?.address as `0x${string}` | undefined) ??
       persistedPrivyAddress ??
       signingAddress ??
       (user?.wallet?.address as `0x${string}` | undefined)
 
-  const isConnected = wagmiConnected || authenticated || hasInjectedConnection
+  const isConnected = wagmiConnected || authenticated || hasFallbackConnection
   const hasEmbeddedWallet = !!embeddedWallet?.address
   const authMethod: AuthMethod = authenticated
     ? (hasExternalWallet ? 'wallet' : 'social')
-    : (wagmiConnected || hasInjectedConnection ? 'wallet' : 'none')
+    : (wagmiConnected || hasFallbackConnection ? 'wallet' : 'none')
   const pendingGoogleWallet = authenticated && !hasEmbeddedWallet && !wagmiConnected
   const isGoogleLogin = authMethod === 'social' && !!googleAccount
 
@@ -208,8 +226,8 @@ export function useArcWallet(): ArcWalletState {
 
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash, query: { enabled: !!txHash } })
 
-  const isPending = hasInjectedConnection ? injectedPending : authMethod === 'wallet' ? wagmiPending : privyPending
-  const error = hasInjectedConnection ? injectedError : authMethod === 'wallet' ? wagmiError : privyError
+  const isPending = hasFallbackConnection ? injectedPending : authMethod === 'wallet' ? wagmiPending : privyPending
+  const error = hasFallbackConnection ? injectedError : authMethod === 'wallet' ? wagmiError : privyError
 
   const connectInjected = useCallback(async (): Promise<void> => {
     const eth = typeof window !== 'undefined' ? (window as any).ethereum : undefined
@@ -224,6 +242,50 @@ export function useArcWallet(): ArcWalletState {
       )
       const raw = accounts?.[0]
       if (!raw) throw new Error('No account returned by the wallet.')
+      fallbackProviderRef.current = eth
+      setInjectedAddress(getAddress(raw) as `0x${string}`)
+    } catch (err) {
+      const e = err instanceof Error ? err : new Error(String(err))
+      setInjectedError(e)
+      throw e
+    } finally {
+      setInjectedPending(false)
+    }
+  }, [])
+
+  const connectWalletConnect = useCallback(async (): Promise<void> => {
+    if (!WALLETCONNECT_PROJECT_ID) {
+      throw new Error('WalletConnect is not configured for this app.')
+    }
+    setInjectedPending(true)
+    setInjectedError(null)
+    try {
+      const { EthereumProvider } = await import('@walletconnect/ethereum-provider')
+      const provider = await EthereumProvider.init({
+        projectId: WALLETCONNECT_PROJECT_ID,
+        optionalChains: [arcTestnet.id],
+        rpcMap: { [arcTestnet.id]: arcTestnet.rpcUrls.default.http[0] },
+        // Runs at the top level of our own page (not inside Privy's cross-origin
+        // iframe), so its QR/deep-link modal (@reown/appkit) can actually trigger
+        // the OS-level "open wallet app" hand-off on mobile, and return here after
+        // the user approves — same flow most dApps used before Privy was added.
+        showQrModal: true,
+        metadata: {
+          name: 'FajuARC',
+          description: 'DeFi on Arc Testnet - Swap, Pools, NFTs',
+          url: typeof window !== 'undefined' ? window.location.origin : 'https://www.fajucar.xyz',
+          icons: ['https://www.fajucar.xyz/favicon.ico'],
+        },
+      })
+      await withTimeout(
+        provider.connect({ optionalChains: [arcTestnet.id] }),
+        120000,
+        'Wallet connection timed out. Try again.',
+      )
+      const accounts = (await provider.enable()) as string[]
+      const raw = accounts?.[0]
+      if (!raw) throw new Error('No account returned by the wallet.')
+      fallbackProviderRef.current = provider as unknown as EIP1193Provider
       setInjectedAddress(getAddress(raw) as `0x${string}`)
     } catch (err) {
       const e = err instanceof Error ? err : new Error(String(err))
@@ -286,16 +348,17 @@ export function useArcWallet(): ArcWalletState {
 
     const amount = parseUnits(amountUsdc, 6)
 
-    if (hasInjectedConnection && injectedAddress) {
-      const eth = (window as any).ethereum
+    if (hasFallbackConnection && injectedAddress) {
+      const provider = fallbackProviderRef.current
+      if (!provider) throw new Error('No wallet connected')
       setInjectedPending(true)
       setInjectedError(null)
       try {
-        await ensureInjectedChain(eth)
+        await ensureInjectedChain(provider)
         const client = createWalletClient({
           account: injectedAddress,
           chain: arcTestnet,
-          transport: custom(eth),
+          transport: custom(provider),
         })
         const hash = await client.writeContract({
           address: CONSTANTS.USDC_ADDRESS,
@@ -365,5 +428,6 @@ export function useArcWallet(): ArcWalletState {
     sendUsdc,
     resetTx,
     connectInjected,
+    connectWalletConnect,
   }
 }
