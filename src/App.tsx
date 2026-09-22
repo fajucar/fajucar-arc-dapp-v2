@@ -9,7 +9,6 @@ import { SwapPage } from '@/pages/SwapPage'
 import { PoolsPage } from '@/pages/PoolsPage'
 import { Agents } from '@/pages/Agents'
 import { ManageV3PositionPage } from '@/modules/v3/pages/ManageV3PositionPage'
-import { MyNFTsPage } from '@/pages/MyNFTsPage'
 import { MyPoolsPage } from '@/pages/MyPoolsPage'
 import { ArcDexTestPool } from '@/pages/ArcDexTestPool'
 import { FaucetPage } from '@/pages/FaucetPage'
@@ -27,7 +26,7 @@ function HomePage() {
           <title>FajuARC - DeFi on Arc Testnet</title>
           <meta 
             name="description" 
-            content="FajuARC: Swap, mint NFTs, and manage liquidity on Arc Testnet. Premium DeFi experience with USDC and EURC." 
+            content="FajuARC: Swap and manage liquidity on Arc Testnet. Premium DeFi experience with USDC and EURC."
           />
           <meta property="og:title" content="FajuARC" />
           <meta property="og:description" content="Premium DeFi on Arc Testnet" />
@@ -142,16 +141,8 @@ function App() {
                 </ErrorBoundary>
               } 
             />
-            <Route 
-              path="/my-nfts" 
-              element={
-                <ErrorBoundary>
-                  <MyNFTsPage />
-                </ErrorBoundary>
-              } 
-            />
-            <Route 
-              path="/my-pools" 
+            <Route
+              path="/my-pools"
               element={
                 <ErrorBoundary>
                   <MyPoolsPage />

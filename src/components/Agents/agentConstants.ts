@@ -16,7 +16,7 @@ export const PERSONALITY_OPTIONS: Array<{
 }> = [
   { id: 'explorer', emoji: '🗺️', label: 'Explorer', desc: 'Discovers new tokens and opportunities' },
   { id: 'trader',   emoji: '📈', label: 'Trader',   desc: 'Focused on swaps and price alerts' },
-  { id: 'builder',  emoji: '🏗️', label: 'Builder',  desc: 'Mints NFTs and interacts with contracts' },
+  { id: 'builder',  emoji: '🏗️', label: 'Builder',  desc: 'Interacts with contracts' },
   { id: 'social',   emoji: '🌐', label: 'Social',   desc: 'Sends payments via social handles' },
 ]
 

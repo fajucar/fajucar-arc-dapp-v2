@@ -18,7 +18,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const NFT_CONTRACT  = '0x1499947A89Ef05B023176D31191BDC5CCF3d0B7E'.toLowerCase()
 const USDC_CONTRACT = '0x3600000000000000000000000000000000000000'.toLowerCase()
 const EXPLORER_BASE = 'https://testnet.arcscan.app'           // correct ArcScan domain
 const API_BASE      = `${import.meta.env.VITE_API_URL || 'http://localhost:3002'}/api/explorer`     // proxied through backend
@@ -72,7 +71,6 @@ interface ArcTokenTransfer {
 interface PassportStats {
   txCount:      number
   usdcVolume:   number
-  nftsMinted:   number
   daysActive:   number
   score:        number
   firstTxDate:  string | null
@@ -169,11 +167,6 @@ async function fetchPassport(address: string): Promise<PassportStats> {
   if (!res.ok) { console.error('[Passport] HTTP', res.status, await res.text()); throw new Error(`HTTP ${res.status}`) }
   const data = await res.json()
   const txs: ArcTx[] = data.items ?? []
-  let nftsMinted = 0
-
-  for (const tx of txs) {
-    if (tx.to?.hash?.toLowerCase() === NFT_CONTRACT) nftsMinted++
-  }
 
   const [usdcVolume, realTxCount] = await Promise.all([
     fetchUsdcVolume(address),
@@ -186,8 +179,8 @@ async function fetchPassport(address: string): Promise<PassportStats> {
     : 0
   // Fall back to the capped page length only if the counters endpoint failed.
   const txCount = realTxCount ?? txs.length
-  const score   = Math.round(txCount * 10 + usdcVolume * 0.1 + nftsMinted * 50 + daysActive * 5)
-  return { txCount, usdcVolume, nftsMinted, daysActive, score, firstTxDate, recentTxs: txs.slice(0, 10) }
+  const score   = Math.round(txCount * 10 + usdcVolume * 0.1 + daysActive * 5)
+  return { txCount, usdcVolume, daysActive, score, firstTxDate, recentTxs: txs.slice(0, 10) }
 }
 
 async function fetchModalData(address: string): Promise<ModalData> {
@@ -681,11 +674,10 @@ export function Agents() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
                     { icon: '📊', label: t('passport.transactions'), value: stats.txCount.toString() },
                     { icon: '💵', label: t('passport.usdcVol'),       value: `$${stats.usdcVolume.toFixed(2)}` },
-                    { icon: '🎨', label: t('passport.nftsMinted'),    value: stats.nftsMinted.toString() },
                     { icon: '📅', label: t('passport.activeDays'),    value: stats.daysActive.toString() },
                   ].map(({ icon, label, value }) => (
                     <div key={label} className="rounded-xl border border-slate-700/40 bg-slate-900/50 p-3 text-center">

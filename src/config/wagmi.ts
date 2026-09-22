@@ -46,7 +46,7 @@ const walletConnectConnector = hasValidProjectId
       showQrModal: !isMobile, // Desktop: QR modal; Mobile: deep link (wallet list)
       metadata: {
         name: 'FajuARC',
-        description: 'DeFi on Arc Testnet - Swap, Pools, NFTs',
+        description: 'DeFi on Arc Testnet - Swap, Pools',
         url: 'https://www.fajucar.xyz',
         icons: ['https://www.fajucar.xyz/favicon.ico'],
       },

@@ -1,5 +1,5 @@
 import { useState, useEffect, type ComponentType } from 'react'
-import { Menu, X, Image, ArrowLeftRight, Waves, Home, Wallet, Bot } from 'lucide-react'
+import { Menu, X, ArrowLeftRight, Waves, Home, Wallet, Bot } from 'lucide-react'
 import { NavLink, Link } from 'react-router-dom'
 import { usePrivy } from '@privy-io/react-auth'
 import { useTranslation } from 'react-i18next'
@@ -13,7 +13,6 @@ const navItems = [
   { to: '/swap', icon: ArrowLeftRight, labelKey: 'nav.swap' },
   { to: '/pools', icon: Waves, labelKey: 'nav.pools' },
   { to: '/my-pools', icon: Wallet, labelKey: 'nav.myPools' },
-  { to: '/my-nfts', icon: Image, labelKey: 'nav.myNfts' },
 ] as const
 
 const mobileNavBaseClass =

@@ -1,4 +1,4 @@
-import { Check, X, ArrowRightLeft, Coins, Droplets, Zap, Wallet } from 'lucide-react'
+import { Check, X, ArrowRightLeft, Coins, Droplets, Wallet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface ConfirmationCardProps {
@@ -16,7 +16,6 @@ const TOOL_META: Record<string, { icon: React.ComponentType<{ className?: string
   sendUSDC:     { icon: Coins,           accent: 'border-emerald-500/40 bg-emerald-500/10' },
   swap:         { icon: ArrowRightLeft,  accent: 'border-blue-500/40 bg-blue-500/10'   },
   addLiquidity: { icon: Droplets,        accent: 'border-purple-500/40 bg-purple-500/10' },
-  mintNFT:      { icon: Zap,            accent: 'border-amber-500/40 bg-amber-500/10'  },
   faucet:       { icon: Droplets,        accent: 'border-teal-500/40 bg-teal-500/10'   },
 }
 

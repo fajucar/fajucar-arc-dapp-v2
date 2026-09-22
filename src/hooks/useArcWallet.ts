@@ -272,7 +272,7 @@ export function useArcWallet(): ArcWalletState {
         showQrModal: true,
         metadata: {
           name: 'FajuARC',
-          description: 'DeFi on Arc Testnet - Swap, Pools, NFTs',
+          description: 'DeFi on Arc Testnet - Swap, Pools',
           url: typeof window !== 'undefined' ? window.location.origin : 'https://www.fajucar.xyz',
           icons: ['https://www.fajucar.xyz/favicon.ico'],
         },

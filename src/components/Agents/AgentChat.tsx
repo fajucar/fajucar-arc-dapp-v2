@@ -124,17 +124,6 @@ const USDC_TRANSFER_ABI = [
   },
 ] as const
 
-// ── NFT ABI (mintById) ────────────────────────────────────────────────────────
-const NFT_ABI = [
-  {
-    name:            'mintById',
-    type:            'function',
-    stateMutability: 'nonpayable',
-    inputs:          [{ name: 'modelId', type: 'uint256' }],
-    outputs:         [],
-  },
-] as const
-
 // ── Faucet ABI (claim) ────────────────────────────────────────────────────────
 const FAUCET_ABI = [
   {
@@ -182,7 +171,6 @@ const SWAP_ROUTER_ABI = [
 
 // ── Contract addresses ────────────────────────────────────────────────────────
 const CONTRACTS = {
-  NFT:    '0x1499947A89Ef05B023176D31191BDC5CCF3d0B7E' as `0x${string}`,
   FAUCET: '0xb6e4c250394Bb0f9b577991C7f4aCF9f6E652017' as `0x${string}`,
 }
 
@@ -195,7 +183,6 @@ function token(sym: string) {
 const TOOL_NOTIFICATION_TITLE: Record<string, string> = {
   sendUSDC: 'USDC sent',
   swap:     'Swap executed',
-  mintNFT:  'NFT minted',
   faucet:   'Faucet claim executed',
 }
 
@@ -387,21 +374,6 @@ export function AgentChat({ personality, walletAddress }: AgentChatProps) {
         })
         return {
           text:   t('agentChat.swapSuccess', { amount: params.amount, tokenIn: params.tokenIn, tokenOut: params.tokenOut }),
-          txHash,
-        }
-      }
-
-      case 'mintNFT': {
-        const modelId = BigInt(params.modelId as number)
-        const txHash = await writeContractAsync({
-          address:      CONTRACTS.NFT,
-          abi:          NFT_ABI,
-          functionName: 'mintById',
-          args:         [modelId],
-        })
-        const names: Record<number, string> = { 1: 'Arc Explorer', 2: 'Arc Guardian', 3: 'Arc Builder' }
-        return {
-          text:   t('agentChat.mintSuccess', { name: names[Number(modelId)] ?? `Model ${modelId}` }),
           txHash,
         }
       }

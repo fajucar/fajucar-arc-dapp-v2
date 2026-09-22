@@ -24,7 +24,6 @@ function parseEnvAddress(envKey: string): `0x${string}` | '' {
 }
 
 export const GIFT_CARD_MINTER_ADDRESS = parseEnvAddress('VITE_GIFT_CARD_MINTER_ADDRESS');
-export const GIFT_CARD_NFT_ADDRESS = parseEnvAddress('VITE_GIFT_CARD_NFT_ADDRESS');
 
 /**
  * Safe getter for Fajucar collection address. Never throws.
@@ -45,7 +44,6 @@ export const MOCK_USDC_ADDRESS = parseEnvAddress('VITE_MOCK_USDC_ADDRESS');
 
 export const CONTRACT_ADDRESSES = {
   MOCK_USDC: MOCK_USDC_ADDRESS,
-  GIFT_CARD_NFT: GIFT_CARD_NFT_ADDRESS,
   GIFT_CARD_MINTER: GIFT_CARD_MINTER_ADDRESS,
 };
 
@@ -88,6 +86,3 @@ export const LOCALHOST_NETWORK = {
   rpcUrls: ['http://127.0.0.1:8545'],
   blockExplorerUrls: [],
 };
-
-// Note: DEPOSIT_AMOUNT is no longer used in v2 (image NFT minter)
-// The new flow mints NFTs directly without requiring USDC deposits

@@ -14,7 +14,6 @@ import { useArcWallet } from '@/hooks/useArcWallet'
 import { PersonalizarModal } from '@/components/Agents/AgentPanel'
 import { loadProfile, saveProfile, defaultAgentName, type AgentLocalProfile, PERSONALITY_OPTIONS } from '@/components/Agents/agentConstants'
 import { AgentChat } from '@/components/Agents/AgentChat'
-import { AgentAchievements } from '@/components/Agents/AgentAchievements'
 
 // ── Tab 1: FajuPay ───────────────────────────────────────────────────────────
 
@@ -432,11 +431,6 @@ function MeuAgenteTab() {
               })}
             </div>
           </div>
-        </div>
-
-        {/* ── Section 1.5: Agent Achievements (main focus) ── */}
-        <div className="flex-1 min-h-0 rounded-xl border border-cyan-500/20 bg-gradient-to-br from-slate-900/80 to-[#0a0a1a]/80 p-3 flex flex-col">
-          <AgentAchievements />
         </div>
       </div>
 

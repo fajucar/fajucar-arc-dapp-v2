@@ -4,8 +4,7 @@
     "agents": "Agentes",
     "swap": "Swap",
     "pools": "Pools",
-    "myPools": "Minhas Pools",
-    "myNfts": "Meus NFTs"
+    "myPools": "Minhas Pools"
   },
   "language": {
     "pt": "PT",
@@ -80,7 +79,6 @@
     "suggestions": [
       "Qual é meu saldo?",
       "Enviar 5 USDC",
-      "Mintar um NFT",
       "Receber tokens do faucet"
     ],
     "errorPrefix": "Erro: {{error}}",
@@ -97,7 +95,6 @@
     "scheduledPaymentExecuted": "Pagamento executado! {{amount}} {{token}} enviado para {{address}}.",
     "scheduledPaymentFailed": "Pagamento agendado falhou: {{amount}} {{token}} para {{address}} — {{error}}",
     "swapSuccess": "Swap de {{amount}} {{tokenIn}} → {{tokenOut}} executado",
-    "mintSuccess": "NFT \"{{name}}\" mintado com sucesso!",
     "faucetSuccess": "Tokens {{token}} recebidos do faucet!",
     "balancesTitle": "Saldos da carteira",
     "txHistoryTitle": "Histórico de transações",
@@ -124,30 +121,7 @@
       "amountA": "Qtd A",
       "amountB": "Qtd B",
       "tokenA": "Token A",
-      "tokenB": "Token B",
-      "modelId": "Modelo"
-    }
-  },
-  "agentAchievements": {
-    "title": "Conquistas do Agente",
-    "unlocked": "{{count}} de {{total}} desbloqueados",
-    "rarity": {
-      "common": "Comum",
-      "uncommon": "Incomum",
-      "rare": "Raro"
-    },
-    "mint": "Mintar",
-    "minting": "Mintando...",
-    "minted": "Minted",
-    "lockReasons": {
-      "connectWallet": "Conecte sua carteira para desbloquear",
-      "configureAgent": "Configure seu agente",
-      "makeTransaction": "Faça uma transação no chat"
-    },
-    "descriptions": {
-      "explorer": "Um explorador corajoso desbravando a Arc Network. O Explorer representa os pioneiros que se aventuram no futuro da finalidade determinística, os primeiros a cruzar a fronteira de uma rede construída para stablecoins.",
-      "guardian": "Um guardião protegendo o ecossistema Arc. O Guardian representa a segurança e estabilidade que a Arc Network oferece, sempre vigilante, garantindo que cada transação chegue ao destino com integridade.",
-      "builder": "Um construtor criando o futuro na Arc Network. O Builder representa os desenvolvedores que constroem dApps inovadores sobre a infraestrutura estável da Arc, cada linha de código uma pedra no alicerce do novo sistema financeiro."
+      "tokenB": "Token B"
     }
   },
   "agentTabs": {

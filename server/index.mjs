@@ -48,7 +48,6 @@ const ADDR = {
   FAJU:    '0x0e8147CdB023474f440636051AA26f7DCaf2aEa7',
   ARCX:    '0xA99F353665F89784F0442FB666ea775b6C1af87d',
   FAUCET:  '0xb6e4c250394Bb0f9b577991C7f4aCF9f6E652017',
-  NFT:     '0x1499947A89Ef05B023176D31191BDC5CCF3d0B7E',
   AGENTIC: '0x0747EEf0706327138c69792bF28Cd525089e4583',
 }
 
@@ -258,21 +257,6 @@ app.post('/api/wallet/claim-arcx', async (req, res) => {
     return res.json({ success: true, txHash, token: 'ARCX' })
   } catch (err) {
     console.error('[Faucet] ARCX error:', err.message)
-    return res.status(500).json({ error: err.message })
-  }
-})
-
-app.post('/api/wallet/mint-nft', async (req, res) => {
-  const { fromAddress, modelId } = req.body
-  const walletId = resolveWalletId(req, fromAddress)
-  if (!walletId) return res.status(404).json({ error: 'Wallet ID não encontrado' })
-  if (![1, 2, 3].includes(Number(modelId))) return res.status(400).json({ error: 'modelId inválido (1, 2 ou 3)' })
-  try {
-    const txHash = await executeContractCall({ walletId, contractAddress: ADDR.NFT, functionSignature: 'mintById(uint256)', parameters: [String(modelId)] })
-    console.log(`[NFT] ✅ Minted modelId=${modelId}: ${txHash}`)
-    return res.json({ success: true, txHash, modelId })
-  } catch (err) {
-    console.error('[NFT] mint error:', err.message)
     return res.status(500).json({ error: err.message })
   }
 })

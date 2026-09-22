@@ -5,7 +5,6 @@ interface ImportMetaEnv {
   readonly VITE_RPC_URL?: string
   readonly VITE_CHAIN_ID?: string
   readonly VITE_MOCK_USDC_ADDRESS?: string
-  readonly VITE_GIFT_CARD_NFT_ADDRESS?: string
   readonly VITE_GIFT_CARD_MINTER_ADDRESS?: string
   readonly VITE_ARC_COLLECTION_ADDRESS?: string
   readonly VITE_WALLETCONNECT_PROJECT_ID?: string

@@ -141,20 +141,6 @@ const TOOLS = [
     },
   },
   {
-    name: 'mintNFT',
-    description: 'Mint a FajuARCNFT from the FajucarCollection on Arc Testnet. Use modelId 1 for Arc Explorer, 2 for Arc Guardian, or 3 for Arc Builder.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        modelId: {
-          type: 'string',
-          description: 'Model ID to mint: "1" for Arc Explorer, "2" for Arc Guardian, "3" for Arc Builder',
-        },
-      },
-      required: ['modelId'],
-    },
-  },
-  {
     name: 'faucet',
     description: 'Claim FAJU or ARCX test tokens from the on-chain faucet on Arc Testnet.',
     input_schema: {
@@ -258,7 +244,7 @@ function detectLang(text) {
 const SYSTEM_PROMPTS = {
   explorer: (n, isFirstMessage) => `Your name is ${n}.
 You are an Explorer agent for FajuARC — curious, adventurous, always looking for new opportunities on Arc Testnet.
-You love discovering new tokens, pools, and NFTs. Your tone is enthusiastic and encouraging.
+You love discovering new tokens and pools. Your tone is enthusiastic and encouraging.
 You help users explore the DApp and try new things. Keep responses concise (2-3 sentences max for text replies).
 Arc Testnet chainId: 5042002. Native gas token: USDC. Available tokens: USDC, EURC, FAJU, ARCX, QCAD, cirBTC.
 When the user asks you to perform an on-chain action, always use the appropriate tool rather than just describing it.
@@ -288,9 +274,9 @@ ${noToolChainingInstruction()}`,
 
   builder: (n, isFirstMessage) => `Your name is ${n}.
 You are a Builder agent for FajuARC — technical, detailed, loves contracts and protocol mechanics.
-You explain what's happening under the hood. You mint NFTs, add liquidity, and interact with smart contracts precisely.
+You explain what's happening under the hood. You add liquidity and interact with smart contracts precisely.
 Be informative but concise. Include relevant contract/tx details when helpful.
-Arc Testnet chainId: 5042002. Native gas token: USDC. NFT contract: 0x1499947A89Ef05B023176D31191BDC5CCF3d0B7E.
+Arc Testnet chainId: 5042002. Native gas token: USDC.
 When the user asks you to perform an on-chain action, always use the appropriate tool rather than just describing it.
 You can now look up the user's recent on-chain transaction history (sends, receives, swaps, mints) using the getTransactionHistory tool.
 You can also schedule future or recurring USDC payments with schedulePayment, list them with listScheduledPayments, and cancel them with cancelScheduledPayment. Use schedulePayment instead of sendUSDC whenever the user mentions a future date/time or a recurring interval (e.g. "every Friday", "on the 15th", "next month").
@@ -407,8 +393,6 @@ function formatTransactionHistory(items, address, limit, lang = 'pt') {
 
 // ── Human-readable labels for each tool call ─────────────────────────────────
 function makeLabel(tool, params, lang = 'pt') {
-  const names = { '1': 'Arc Explorer', '2': 'Arc Guardian', '3': 'Arc Builder' }
-
   if (lang === 'en') {
     switch (tool) {
       case 'getBalance':
@@ -419,8 +403,6 @@ function makeLabel(tool, params, lang = 'pt') {
         return `Swap ${params.amount} ${params.tokenIn} for ${params.tokenOut}`
       case 'addLiquidity':
         return `Add liquidity: ${params.amountA} ${params.tokenA} + ${params.amountB} ${params.tokenB}`
-      case 'mintNFT':
-        return `Mint NFT: ${names[params.modelId] ?? `Model ${params.modelId}`}`
       case 'faucet':
         return `Claim tokens from faucet (${params.token})`
       default:
@@ -437,8 +419,6 @@ function makeLabel(tool, params, lang = 'pt') {
       return `Trocar ${params.amount} ${params.tokenIn} por ${params.tokenOut}`
     case 'addLiquidity':
       return `Adicionar liquidez: ${params.amountA} ${params.tokenA} + ${params.amountB} ${params.tokenB}`
-    case 'mintNFT':
-      return `Mintar NFT: ${names[params.modelId] ?? `Model ${params.modelId}`}`
     case 'faucet':
       return `Receber tokens do faucet (${params.token})`
     default:

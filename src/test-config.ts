@@ -13,12 +13,6 @@ export function testConfig() {
     console.log('✅ MOCK_USDC_ADDRESS:', CONTRACT_ADDRESSES.MOCK_USDC);
   }
   
-  if (!CONTRACT_ADDRESSES.GIFT_CARD_NFT) {
-    issues.push('❌ VITE_GIFT_CARD_NFT_ADDRESS is not set');
-  } else {
-    console.log('✅ GIFT_CARD_NFT_ADDRESS:', CONTRACT_ADDRESSES.GIFT_CARD_NFT);
-  }
-  
   if (!CONTRACT_ADDRESSES.GIFT_CARD_MINTER) {
     issues.push('❌ VITE_GIFT_CARD_MINTER_ADDRESS is not set');
   } else {
@@ -30,10 +24,6 @@ export function testConfig() {
   
   if (CONTRACT_ADDRESSES.MOCK_USDC && !addressRegex.test(CONTRACT_ADDRESSES.MOCK_USDC)) {
     issues.push('❌ MOCK_USDC_ADDRESS format is invalid (should be 0x followed by 40 hex characters)');
-  }
-  
-  if (CONTRACT_ADDRESSES.GIFT_CARD_NFT && !addressRegex.test(CONTRACT_ADDRESSES.GIFT_CARD_NFT)) {
-    issues.push('❌ GIFT_CARD_NFT_ADDRESS format is invalid (should be 0x followed by 40 hex characters)');
   }
   
   if (CONTRACT_ADDRESSES.GIFT_CARD_MINTER && !addressRegex.test(CONTRACT_ADDRESSES.GIFT_CARD_MINTER)) {
