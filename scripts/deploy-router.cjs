@@ -1,17 +1,31 @@
 /**
- * Deploy ArcDEXRouter (patchado, compatível com USDC precompile) na Arc Testnet.
+ * Deploy ArcDEXRouter (patchado, compatível com USDC precompile) na Arc Testnet ou Mainnet.
  *
  * Uso:
  *   1. No .env, defina DEPLOYER_PRIVATE_KEY=0x... (chave da carteira que vai pagar o gas).
  *   2. Rode: npx hardhat run scripts/deploy-router.cjs --network arcTestnet
+ *      (ou --network arcMainnet)
  *   3. Copie a linha VITE_DEX_ROUTER_ADDRESS=... exibida no final e atualize seu .env.
  *   4. Reinicie o app (npm run dev) e aprove USDC de novo na tela de Swap.
  */
 const hre = require("hardhat");
 
-const FACTORY_ADDRESS = "0x4b6F738717c46A8998990EBCb17FEf032DC5958B";
+const FACTORY_ADDRESS_BY_NETWORK = {
+  arcTestnet: "0x4b6F738717c46A8998990EBCb17FEf032DC5958B",
+  arcMainnet: "0xA1cc4B2bE8CCC493413ffA20C5c00d3BC14a2501", // Factory mainnet, deployada agora
+};
 
 async function main() {
+  const FACTORY_ADDRESS = FACTORY_ADDRESS_BY_NETWORK[hre.network.name];
+  if (!FACTORY_ADDRESS) {
+    console.error(`\n❌ ERRO: Nenhum FACTORY_ADDRESS configurado para a rede "${hre.network.name}".`);
+    if (hre.network.name === "arcMainnet") {
+      console.error("Rode antes: npx hardhat run scripts/deploy-v2-dex.cjs --network arcMainnet");
+      console.error("Depois defina FACTORY_ADDRESS_MAINNET=<endereço> no .env.");
+    }
+    process.exit(1);
+  }
+
   const signers = await hre.ethers.getSigners();
   if (signers.length === 0) {
     console.error("\n❌ ERRO: Nenhuma conta configurada para deploy.");

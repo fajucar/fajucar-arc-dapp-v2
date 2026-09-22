@@ -45,27 +45,27 @@ export const arcTestnet = {
   testnet: true,
 } as const satisfies Chain
 
-// Exportar também mainnet quando disponível
+// Confirmado em docs.arc.io/arc/references/connect-to-arc
 export const arcMainnet = {
-  id: 1337, // AJUSTAR quando mainnet estiver disponível
-  name: 'Arc Network',
+  id: 5042,
+  name: 'Arc Mainnet',
   nativeCurrency: {
     name: 'USDC',
     symbol: 'USDC',
-    decimals: 6,
+    decimals: 18, // Confirmado via eth_getBalance no RPC (diferente do ARC_TESTNET)
   },
   rpcUrls: {
-    default: { 
-      http: ['https://rpc.arc.network'],
+    default: {
+      http: ['https://rpc.mainnet.arc.io'],
     },
-    public: { 
-      http: ['https://rpc.arc.network'],
+    public: {
+      http: ['https://rpc.mainnet.arc.io'],
     },
   },
   blockExplorers: {
-    default: { 
-      name: 'ArcScan', 
-      url: 'https://arcscan.app'
+    default: {
+      name: 'Arc Explorer',
+      url: 'https://explorer.arc.io'
     },
   },
   testnet: false,

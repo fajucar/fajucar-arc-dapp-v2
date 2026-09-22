@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSwitchChain, useWalletClient } from 'wagmi'
 import { AlertCircle, X, Loader2 } from 'lucide-react'
-import { arcTestnet } from '@/config/chains'
+import { arcTestnet, arcMainnet } from '@/config/chains'
 import toast from 'react-hot-toast'
 
 interface NetworkSwitchModalProps {
@@ -19,6 +19,19 @@ const ARC_CHAIN_PARAMS = {
   rpcUrls: arcTestnet.rpcUrls.default.http,
   blockExplorerUrls: arcTestnet.blockExplorers?.default?.url
     ? [arcTestnet.blockExplorers.default.url]
+    : [],
+}
+
+const ARC_MAINNET_CHAIN_ID = arcMainnet.id
+
+/** Parâmetros EIP-3085 para wallet_addEthereumChain (Arc Mainnet) */
+const ARC_MAINNET_CHAIN_PARAMS = {
+  chainId: `0x${ARC_MAINNET_CHAIN_ID.toString(16)}`,
+  chainName: arcMainnet.name,
+  nativeCurrency: arcMainnet.nativeCurrency,
+  rpcUrls: arcMainnet.rpcUrls.default.http,
+  blockExplorerUrls: arcMainnet.blockExplorers?.default?.url
+    ? [arcMainnet.blockExplorers.default.url]
     : [],
 }
 
@@ -63,6 +76,30 @@ export function NetworkSwitchModal({ isOpen, onClose }: NetworkSwitchModalProps)
         toast.error('You rejected adding the network.')
       } else {
         toast.error('Could not add the network.')
+      }
+    } finally {
+      setIsAddPending(false)
+    }
+  }
+
+  const handleAddMainnetChain = async () => {
+    if (!walletClient) {
+      toast.error('Connect a wallet first.')
+      return
+    }
+    setIsAddPending(true)
+    try {
+      await walletClient.request({
+        method: 'wallet_addEthereumChain',
+        params: [ARC_MAINNET_CHAIN_PARAMS],
+      })
+      toast.success('Arc Mainnet added to your wallet.')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (/user rejected|user denied/i.test(msg)) {
+        toast.error('You rejected adding the network.')
+      } else {
+        toast.error('Could not add Arc Mainnet.')
       }
     } finally {
       setIsAddPending(false)
@@ -144,6 +181,21 @@ export function NetworkSwitchModal({ isOpen, onClose }: NetworkSwitchModalProps)
                 </>
               ) : (
                 'Add Arc Testnet network'
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleAddMainnetChain}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-2 w-full rounded-lg border border-emerald-500/50 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-400 font-semibold py-3 px-4 transition-colors"
+            >
+              {isAddPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                'Add Arc Mainnet network'
               )}
             </button>
           </div>

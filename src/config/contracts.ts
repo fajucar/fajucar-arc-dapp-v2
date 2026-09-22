@@ -74,6 +74,23 @@ export const ARC_TESTNET = {
   blockExplorerUrls: ['https://testnet.arcscan.app'], // Official explorer
 };
 
+// Arc Mainnet configuration
+// Source: https://docs.arc.io/arc/references/connect-to-arc
+export const ARC_MAINNET = {
+  chainId: 5042,
+  chainName: 'Arc Mainnet',
+  nativeCurrency: {
+    name: 'USDC',
+    symbol: 'USDC',
+    decimals: 18, // Confirmado via eth_getBalance no RPC: balance nativo usa 18 decimals,
+                  // diferente do ERC-20 USDC (6 decimals). Não mexer no ARC_TESTNET.
+  },
+  rpcUrls: [
+    'https://rpc.mainnet.arc.io',
+  ],
+  blockExplorerUrls: ['https://explorer.arc.io'],
+};
+
 // Localhost configuration for local testing
 export const LOCALHOST_NETWORK = {
   chainId: 31337,
