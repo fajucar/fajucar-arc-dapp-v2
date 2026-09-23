@@ -6,7 +6,7 @@ import { usePrivy, useCreateWallet, useWallets } from '@privy-io/react-auth'
 import { useWalletModal } from '@/contexts/WalletModalContext'
 import { CONSTANTS } from '@/config/constants'
 import { formatAddress } from '@/lib/formatters'
-import { arcTestnet } from '@/config/chains'
+import { arcMainnet } from '@/config/chains'
 import { clearWagmiStorage } from '@/lib/wagmiStorage'
 import { useArcWallet } from '@/hooks/useArcWallet'
 import toast from 'react-hot-toast'
@@ -19,7 +19,7 @@ function getExpectedChainId(): number {
       if (!isNaN(parsed) && parsed > 0) return parsed
     }
   } catch { /* noop */ }
-  return arcTestnet.id
+  return arcMainnet.id
 }
 
 const EXPECTED_CHAIN_ID = getExpectedChainId()
@@ -105,9 +105,9 @@ export function ConnectButton() {
     setIsSwitchingChain(true)
     try {
       await switchChainAsync({ chainId: EXPECTED_CHAIN_ID })
-      toast.success('Switched to Arc Testnet')
+      toast.success('Switched to Arc Mainnet')
     } catch (error: any) {
-      if (error?.code === 4902) toast.error('Arc Testnet not added. Please add it manually in MetaMask.')
+      if (error?.code === 4902) toast.error('Arc Mainnet not added. Please add it manually in MetaMask.')
       else if (error?.code === 4001) toast.error('Network switch rejected')
       else toast.error('Failed to switch network')
     } finally {
@@ -245,7 +245,7 @@ export function ConnectButton() {
         <AlertTriangle className="h-5 w-5 text-yellow-400" />
         <div className="flex-1">
           <p className="text-sm font-medium text-yellow-400">Wrong Network</p>
-          <p className="text-xs text-yellow-300/80">Switch to Arc Testnet</p>
+          <p className="text-xs text-yellow-300/80">Switch to Arc Mainnet</p>
         </div>
         <button
           onClick={handleSwitchChain}

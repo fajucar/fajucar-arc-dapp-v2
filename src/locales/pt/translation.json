@@ -12,14 +12,14 @@
   },
   "footer": {
     "copyright": "© 2026",
-    "runningOn": "Rodando na Arc Testnet"
+    "runningOn": "Rodando na Arc Mainnet"
   },
   "home": {
     "statsTitle": "Estatísticas da Rede",
-    "statsSubtitle": "Dados em tempo real da RPC da Arc Testnet. Clique nos cards para verificar no explorer."
+    "statsSubtitle": "Dados em tempo real da RPC da Arc Mainnet. Clique nos cards para verificar no explorer."
   },
   "hero": {
-    "live": "Em operação na Arc Testnet",
+    "live": "Em operação na Arc Mainnet",
     "titleLine1": "Envie dinheiro",
     "titleLine2": "como uma mensagem.",
     "subtitle": "Pagamentos instantâneos em USDC na Arc Network. Compartilhe um link e receba via Twitter, Telegram ou Discord. Sem fricção.",
@@ -60,8 +60,8 @@
     }
   },
   "swap": {
-    "metaDescription": "Troque tokens na FajuARC. Negocie FAJU, ARCX, USDC, EURC na Arc Testnet.",
-    "subtitle": "Negocie FAJU, ARCX, USDC, EURC na Arc Testnet",
+    "metaDescription": "Troque tokens na FajuARC. Negocie FAJU, ARCX, USDC, EURC na Arc Mainnet.",
+    "subtitle": "Negocie FAJU, ARCX, USDC, EURC na Arc Mainnet",
     "tabSwap": "Swap",
     "tabBridge": "Ponte",
     "tabError": "A aba \"{{tab}}\" encontrou um erro",
@@ -128,7 +128,7 @@
     "myAgent": "Meu Agente"
   },
   "fajuPay": {
-    "subtitle": "Envie e receba USDC na Arc Testnet",
+    "subtitle": "Envie e receba USDC na Arc Mainnet",
     "receive": "Receber",
     "send": "Enviar",
     "amountPlaceholder": "Valor em USDC (opcional)",

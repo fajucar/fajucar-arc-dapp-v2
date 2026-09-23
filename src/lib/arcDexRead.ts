@@ -18,7 +18,7 @@ const FACTORY_ABI = [
   },
 ] as const
 
-const RPC_URL = 'https://rpc.testnet.arc.network'
+const RPC_URL = 'https://rpc.mainnet.arc.io'
 
 // Fallback client se não houver um passado
 const fallbackClient = createPublicClient({

@@ -1,5 +1,5 @@
 /**
- * Arc Testnet Network Configuration
+ * Arc Network Configuration (Testnet + Mainnet)
  */
 
 export const ARC_TESTNET = {
@@ -20,6 +20,24 @@ export const ARC_TESTNET = {
   blockExplorerUrls: ['https://testnet.arcscan.app'],
 };
 
+// Arc Mainnet é a rede padrão do app.
+export const ARC_MAINNET = {
+  chainIdHex: '0x13B2', // 5042 in hex
+  chainIdDec: 5042,
+  chainName: 'Arc Mainnet',
+  nativeCurrency: {
+    name: 'USDC',
+    symbol: 'USDC',
+    decimals: 18, // Confirmado via eth_getBalance no RPC — diferente do ARC_TESTNET
+  },
+  rpcUrls: [
+    'https://rpc.mainnet.arc.io',
+  ],
+  blockExplorerUrls: ['https://explorer.arc.io'],
+};
+
+type ArcNetwork = typeof ARC_TESTNET | typeof ARC_MAINNET;
+
 /**
  * Normalize chainId to decimal number
  */
@@ -36,10 +54,10 @@ export function normalizeChainId(chainId: string | number | bigint | null | unde
 }
 
 /**
- * Ensure wallet is connected to Arc Testnet
- * Automatically switches or adds network if needed
+ * Ensure wallet is connected to the given Arc network (Arc Mainnet by default).
+ * Automatically switches or adds network if needed.
  */
-export async function ensureArcNetwork(provider: any): Promise<boolean> {
+export async function ensureArcNetwork(provider: any, network: ArcNetwork = ARC_MAINNET): Promise<boolean> {
   if (!provider) {
     throw new Error('No wallet provider available');
   }
@@ -49,63 +67,63 @@ export async function ensureArcNetwork(provider: any): Promise<boolean> {
     const currentChainIdHex = await provider.request({ method: 'eth_chainId' });
     const currentChainId = normalizeChainId(currentChainIdHex);
 
-    console.log('[Chain] Current chainId:', currentChainId, 'Expected:', ARC_TESTNET.chainIdDec);
+    console.log('[Chain] Current chainId:', currentChainId, 'Expected:', network.chainIdDec);
 
-    // Already on Arc Testnet
-    if (currentChainId === ARC_TESTNET.chainIdDec) {
-      console.log('[Chain] ✅ Already on Arc Testnet');
+    // Already on the target network
+    if (currentChainId === network.chainIdDec) {
+      console.log(`[Chain] ✅ Already on ${network.chainName}`);
       return true;
     }
 
     // Try to switch first
     try {
-      console.log('[Chain] Attempting to switch to Arc Testnet...');
+      console.log(`[Chain] Attempting to switch to ${network.chainName}...`);
       await provider.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: ARC_TESTNET.chainIdHex }],
+        params: [{ chainId: network.chainIdHex }],
       });
-      
+
       // Wait a moment for switch to complete
       await new Promise((r) => setTimeout(r, 1000));
-      
+
       // Verify switch
       const newChainIdHex = await provider.request({ method: 'eth_chainId' });
       const newChainId = normalizeChainId(newChainIdHex);
-      
-      if (newChainId === ARC_TESTNET.chainIdDec) {
-        console.log('[Chain] ✅ Successfully switched to Arc Testnet');
+
+      if (newChainId === network.chainIdDec) {
+        console.log(`[Chain] ✅ Successfully switched to ${network.chainName}`);
         return true;
       }
     } catch (switchError: any) {
       // Error 4902: Chain not added
       if (switchError.code === 4902) {
-        console.log('[Chain] Network not added, adding Arc Testnet...');
-        
+        console.log(`[Chain] Network not added, adding ${network.chainName}...`);
+
         // Try each RPC URL until one works
-        for (const rpcUrl of ARC_TESTNET.rpcUrls) {
+        for (const rpcUrl of network.rpcUrls) {
           try {
             await provider.request({
               method: 'wallet_addEthereumChain',
               params: [
                 {
-                  chainId: ARC_TESTNET.chainIdHex,
-                  chainName: ARC_TESTNET.chainName,
-                  nativeCurrency: ARC_TESTNET.nativeCurrency,
+                  chainId: network.chainIdHex,
+                  chainName: network.chainName,
+                  nativeCurrency: network.nativeCurrency,
                   rpcUrls: [rpcUrl],
-                  blockExplorerUrls: ARC_TESTNET.blockExplorerUrls,
+                  blockExplorerUrls: network.blockExplorerUrls,
                 },
               ],
             });
-            
+
             // Wait for add to complete
             await new Promise((r) => setTimeout(r, 1000));
-            
+
             // Verify
             const newChainIdHex = await provider.request({ method: 'eth_chainId' });
             const newChainId = normalizeChainId(newChainIdHex);
-            
-            if (newChainId === ARC_TESTNET.chainIdDec) {
-              console.log('[Chain] ✅ Successfully added and switched to Arc Testnet');
+
+            if (newChainId === network.chainIdDec) {
+              console.log(`[Chain] ✅ Successfully added and switched to ${network.chainName}`);
               return true;
             }
           } catch (addError: any) {
@@ -114,8 +132,8 @@ export async function ensureArcNetwork(provider: any): Promise<boolean> {
             continue;
           }
         }
-        
-        throw new Error('Failed to add Arc Testnet network. Please add it manually in your wallet.');
+
+        throw new Error(`Failed to add ${network.chainName} network. Please add it manually in your wallet.`);
       } else {
         throw switchError;
       }
@@ -127,4 +145,3 @@ export async function ensureArcNetwork(provider: any): Promise<boolean> {
     throw error;
   }
 }
-

@@ -11,7 +11,7 @@ import toast from 'react-hot-toast'
 import { useSearchParams } from 'react-router-dom'
 import { usePublicClient } from 'wagmi'
 import { CONSTANTS } from '@/config/constants'
-import { ARC_TESTNET_TOKENS } from '@/config/tokens.arc-testnet'
+import { ARC_MAINNET_TOKENS } from '@/config/tokens.arc-mainnet'
 import { useGasPrice } from '@/hooks/useGasPrice'
 import { useArcWallet } from '@/hooks/useArcWallet'
 import { useWalletModal } from '@/contexts/WalletModalContext'
@@ -19,8 +19,8 @@ import { isInjectedWalletBrowser } from '@/utils/device'
 import { TokenSelectModal, type TokenSelectItem } from '@/components/TokenSelect/TokenSelectModal'
 
 type Tab = 'send' | 'receive'
-type Token = (typeof ARC_TESTNET_TOKENS)[number]
-const DEFAULT_TOKEN = ARC_TESTNET_TOKENS[0]
+type Token = (typeof ARC_MAINNET_TOKENS)[number]
+const DEFAULT_TOKEN = ARC_MAINNET_TOKENS[0]
 
 const ERC20_BALANCE_ABI = [
   {
@@ -32,7 +32,7 @@ const ERC20_BALANCE_ABI = [
   },
 ] as const
 
-const TOKEN_SELECT_ITEMS: TokenSelectItem[] = ARC_TESTNET_TOKENS.map((t) => ({
+const TOKEN_SELECT_ITEMS: TokenSelectItem[] = ARC_MAINNET_TOKENS.map((t) => ({
   address: t.address,
   symbol: t.symbol,
   name: t.name,
@@ -41,7 +41,7 @@ const TOKEN_SELECT_ITEMS: TokenSelectItem[] = ARC_TESTNET_TOKENS.map((t) => ({
 
 function findTokenBySymbol(symbol: string | null): Token {
   if (!symbol) return DEFAULT_TOKEN
-  return ARC_TESTNET_TOKENS.find((t) => t.symbol.toUpperCase() === symbol.toUpperCase()) ?? DEFAULT_TOKEN
+  return ARC_MAINNET_TOKENS.find((t) => t.symbol.toUpperCase() === symbol.toUpperCase()) ?? DEFAULT_TOKEN
 }
 
 function truncate(addr: string) {
@@ -103,7 +103,7 @@ function handleTokenPick(
   item: TokenSelectItem,
   setSelectedToken: (t: Token) => void,
 ) {
-  const token = ARC_TESTNET_TOKENS.find((t) => t.address === item.address) ?? DEFAULT_TOKEN
+  const token = ARC_MAINNET_TOKENS.find((t) => t.address === item.address) ?? DEFAULT_TOKEN
   setSelectedToken(token)
   if (token.symbol !== 'USDC') {
     toast(`Direct send for ${token.symbol} coming soon — use Swap for now`, { icon: 'ℹ️' })
@@ -368,7 +368,7 @@ function SendTab({ initialRecipient }: { initialRecipient?: string }) {
             <span className="text-cyan-400 font-semibold">&lt; 1s</span>
           </div>
         </div>
-        <div className="text-yellow-400/70 text-[10px] hidden sm:block">⚡ Arc Testnet</div>
+        <div className="text-yellow-400/70 text-[10px] hidden sm:block">⚡ Arc Mainnet</div>
       </div>
 
       {/* Send Button */}
@@ -553,7 +553,7 @@ function ReceiveTab() {
         isOpen={tokenModalOpen}
         onClose={() => setTokenModalOpen(false)}
         tokens={TOKEN_SELECT_ITEMS}
-        onSelect={(item) => setSelectedToken(ARC_TESTNET_TOKENS.find((t) => t.address === item.address) ?? DEFAULT_TOKEN)}
+        onSelect={(item) => setSelectedToken(ARC_MAINNET_TOKENS.find((t) => t.address === item.address) ?? DEFAULT_TOKEN)}
         title="Select token to receive"
       />
     </div>

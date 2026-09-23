@@ -309,6 +309,10 @@ export function MyPoolsPage() {
       toast.error('Connect your wallet')
       return
     }
+    if (ARCDEX.liquidityHelper === '0x0000000000000000000000000000000000000000') {
+      toast.error('Adding to an existing position isn\'t available on Arc Mainnet yet. Use the Pools page to add liquidity instead.')
+      return
+    }
     if (!amount0 || !amount1 || parseFloat(amount0) <= 0 || parseFloat(amount1) <= 0) {
       toast.error('Enter valid amounts for both tokens')
       return
@@ -465,7 +469,7 @@ export function MyPoolsPage() {
 
         {isWrongChain && (
           <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-sm">
-            Connect to <strong>Arc Testnet</strong> to manage your positions.
+            Connect to <strong>Arc Mainnet</strong> to manage your positions.
           </div>
         )}
 

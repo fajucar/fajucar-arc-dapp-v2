@@ -9,19 +9,7 @@ interface NetworkSwitchModalProps {
   onClose: () => void
 }
 
-const ARC_CHAIN_ID = arcTestnet.id
-
-/** Parâmetros EIP-3085 para wallet_addEthereumChain */
-const ARC_CHAIN_PARAMS = {
-  chainId: `0x${ARC_CHAIN_ID.toString(16)}`,
-  chainName: arcTestnet.name,
-  nativeCurrency: arcTestnet.nativeCurrency,
-  rpcUrls: arcTestnet.rpcUrls.default.http,
-  blockExplorerUrls: arcTestnet.blockExplorers?.default?.url
-    ? [arcTestnet.blockExplorers.default.url]
-    : [],
-}
-
+// Arc Mainnet é a rede padrão do app.
 const ARC_MAINNET_CHAIN_ID = arcMainnet.id
 
 /** Parâmetros EIP-3085 para wallet_addEthereumChain (Arc Mainnet) */
@@ -35,15 +23,30 @@ const ARC_MAINNET_CHAIN_PARAMS = {
     : [],
 }
 
+// Arc Testnet fica disponível como opção secundária (desenvolvimento).
+const ARC_TESTNET_CHAIN_ID = arcTestnet.id
+
+/** Parâmetros EIP-3085 para wallet_addEthereumChain (Arc Testnet) */
+const ARC_TESTNET_CHAIN_PARAMS = {
+  chainId: `0x${ARC_TESTNET_CHAIN_ID.toString(16)}`,
+  chainName: arcTestnet.name,
+  nativeCurrency: arcTestnet.nativeCurrency,
+  rpcUrls: arcTestnet.rpcUrls.default.http,
+  blockExplorerUrls: arcTestnet.blockExplorers?.default?.url
+    ? [arcTestnet.blockExplorers.default.url]
+    : [],
+}
+
 export function NetworkSwitchModal({ isOpen, onClose }: NetworkSwitchModalProps) {
   const { switchChain, isPending: isSwitchPending } = useSwitchChain()
   const { data: walletClient } = useWalletClient()
   const [isAddPending, setIsAddPending] = useState(false)
+  const [showTestnetOption, setShowTestnetOption] = useState(false)
 
   const handleSwitchChain = async () => {
     try {
-      await switchChain({ chainId: ARC_CHAIN_ID })
-      toast.success('Switching to Arc Testnet...')
+      await switchChain({ chainId: ARC_MAINNET_CHAIN_ID })
+      toast.success('Switching to Arc Mainnet...')
       onClose()
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -64,11 +67,11 @@ export function NetworkSwitchModal({ isOpen, onClose }: NetworkSwitchModalProps)
     try {
       await walletClient.request({
         method: 'wallet_addEthereumChain',
-        params: [ARC_CHAIN_PARAMS],
+        params: [ARC_MAINNET_CHAIN_PARAMS],
       })
-      toast.success('Network added. Switching to Arc Testnet...')
+      toast.success('Network added. Switching to Arc Mainnet...')
       // Alguns wallets trocam automaticamente; outros não — tenta switch
-      await switchChain({ chainId: ARC_CHAIN_ID })
+      await switchChain({ chainId: ARC_MAINNET_CHAIN_ID })
       onClose()
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -82,7 +85,22 @@ export function NetworkSwitchModal({ isOpen, onClose }: NetworkSwitchModalProps)
     }
   }
 
-  const handleAddMainnetChain = async () => {
+  const handleSwitchTestnetChain = async () => {
+    try {
+      await switchChain({ chainId: ARC_TESTNET_CHAIN_ID })
+      toast.success('Switching to Arc Testnet...')
+      onClose()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (/user rejected|user denied/i.test(msg)) {
+        toast.error('You rejected the network switch.')
+      } else {
+        toast.error('Could not switch network. Try adding the network.')
+      }
+    }
+  }
+
+  const handleAddTestnetChain = async () => {
     if (!walletClient) {
       toast.error('Connect a wallet first.')
       return
@@ -91,15 +109,17 @@ export function NetworkSwitchModal({ isOpen, onClose }: NetworkSwitchModalProps)
     try {
       await walletClient.request({
         method: 'wallet_addEthereumChain',
-        params: [ARC_MAINNET_CHAIN_PARAMS],
+        params: [ARC_TESTNET_CHAIN_PARAMS],
       })
-      toast.success('Arc Mainnet added to your wallet.')
+      toast.success('Network added. Switching to Arc Testnet...')
+      await switchChain({ chainId: ARC_TESTNET_CHAIN_ID })
+      onClose()
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       if (/user rejected|user denied/i.test(msg)) {
         toast.error('You rejected adding the network.')
       } else {
-        toast.error('Could not add Arc Mainnet.')
+        toast.error('Could not add the network.')
       }
     } finally {
       setIsAddPending(false)
@@ -144,10 +164,10 @@ export function NetworkSwitchModal({ isOpen, onClose }: NetworkSwitchModalProps)
                 Wrong network
               </h2>
               <p className="mt-1 text-sm text-slate-400">
-                Connect to <strong className="text-cyan-400">Arc Testnet</strong> (Chain ID 5042002) to use Swap.
+                Connect to <strong className="text-cyan-400">Arc Mainnet</strong> (Chain ID 5042) to use Swap.
               </p>
               <p className="mt-2 text-xs text-slate-500">
-                If Arc Testnet does not appear in your wallet, use &quot;Add network&quot;.
+                If Arc Mainnet does not appear in your wallet, use &quot;Add network&quot;.
               </p>
             </div>
           </div>
@@ -165,7 +185,7 @@ export function NetworkSwitchModal({ isOpen, onClose }: NetworkSwitchModalProps)
                   Switching...
                 </>
               ) : (
-                'Switch to Arc Testnet'
+                'Switch to Arc Mainnet'
               )}
             </button>
             <button
@@ -180,25 +200,40 @@ export function NetworkSwitchModal({ isOpen, onClose }: NetworkSwitchModalProps)
                   Adding...
                 </>
               ) : (
-                'Add Arc Testnet network'
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={handleAddMainnetChain}
-              disabled={isLoading}
-              className="flex items-center justify-center gap-2 w-full rounded-lg border border-emerald-500/50 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-400 font-semibold py-3 px-4 transition-colors"
-            >
-              {isAddPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Adding...
-                </>
-              ) : (
                 'Add Arc Mainnet network'
               )}
             </button>
           </div>
+
+          {!showTestnetOption ? (
+            <button
+              type="button"
+              onClick={() => setShowTestnetOption(true)}
+              className="mt-3 w-full text-center text-xs text-slate-500 hover:text-slate-300 underline underline-offset-2 transition-colors"
+            >
+              Use Arc Testnet instead (development)
+            </button>
+          ) : (
+            <div className="mt-3 flex flex-col gap-1.5 border-t border-slate-800 pt-3">
+              <p className="text-[11px] text-slate-500 mb-0.5">Arc Testnet (development)</p>
+              <button
+                type="button"
+                onClick={handleSwitchTestnetChain}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 w-full rounded-lg border border-slate-700 bg-slate-800/60 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300 text-xs font-medium py-2 px-3 transition-colors"
+              >
+                {isSwitchPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Switch to Arc Testnet'}
+              </button>
+              <button
+                type="button"
+                onClick={handleAddTestnetChain}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 w-full rounded-lg border border-slate-700 bg-slate-800/60 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-slate-400 text-xs font-medium py-2 px-3 transition-colors"
+              >
+                {isAddPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Add Arc Testnet network'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

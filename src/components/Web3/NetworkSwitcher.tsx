@@ -1,13 +1,13 @@
 import { useAccount, useSwitchChain } from 'wagmi'
 import { AlertTriangle } from 'lucide-react'
-import { arcTestnet } from '@/config/chains'
+import { arcMainnet } from '@/config/chains'
 import toast from 'react-hot-toast'
 
 export function NetworkSwitcher() {
   const { chain } = useAccount()
   const { switchChain } = useSwitchChain()
 
-  if (!chain || chain.id === arcTestnet.id) return null
+  if (!chain || chain.id === arcMainnet.id) return null
 
   return (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50">
@@ -19,16 +19,16 @@ export function NetworkSwitcher() {
               Wrong Network
             </h3>
             <p className="text-sm text-yellow-200/80 mb-3">
-              Please switch to Arc Testnet to use this app
+              Please switch to Arc Mainnet to use this app
             </p>
             <button
               onClick={() => {
-                switchChain({ chainId: arcTestnet.id })
-                toast.success('Switching to Arc Testnet...')
+                switchChain({ chainId: arcMainnet.id })
+                toast.success('Switching to Arc Mainnet...')
               }}
               className="w-full rounded-lg bg-yellow-500 px-4 py-2 font-semibold text-black hover:bg-yellow-400 transition-colors"
             >
-              Switch to Arc Testnet
+              Switch to Arc Mainnet
             </button>
           </div>
         </div>
@@ -36,4 +36,3 @@ export function NetworkSwitcher() {
     </div>
   )
 }
-

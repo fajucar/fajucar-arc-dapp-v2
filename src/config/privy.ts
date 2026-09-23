@@ -1,9 +1,9 @@
 import type { PrivyClientConfig } from '@privy-io/react-auth'
-import { arcTestnet } from '@/config/chains'
+import { arcMainnet, arcTestnet } from '@/config/chains'
 
 export const PRIVY_APP_ID = 'cmp0dlx5n026d0djsdyf4b3p3'
 
-export { arcTestnet }
+export { arcTestnet, arcMainnet }
 
 /**
  * FajuARC — Estratégia de autenticação (TAREFA 3):
@@ -24,8 +24,8 @@ export { arcTestnet }
 export const privyConfig: PrivyClientConfig = {
   loginMethods: ['google', 'twitter', 'discord', 'telegram', 'wallet'],
 
-  defaultChain: arcTestnet,
-  supportedChains: [arcTestnet],
+  defaultChain: arcMainnet,
+  supportedChains: [arcMainnet, arcTestnet],
 
   embeddedWallets: {
     ethereum: {

@@ -70,3 +70,52 @@ export const ARC_TESTNET_TOKENS = [
 ] as const
 
 export type ArcTestnetToken = (typeof ARC_TESTNET_TOKENS)[number]
+
+/**
+ * Shared Arc Mainnet token list. Only tokens actually deployed on mainnet
+ * (chainId 5042) — QCAD/USYC/LINK are testnet-only and intentionally omitted.
+ */
+export const ARC_MAINNET_TOKENS = [
+  {
+    symbol: 'USDC',
+    name: 'USD Coin',
+    address: '0x3600000000000000000000000000000000000000' as `0x${string}`,
+    decimals: 6,
+    flag: '🇺🇸',
+    logo: '🇺🇸',
+  },
+  {
+    symbol: 'EURC',
+    name: 'Euro Coin',
+    address: '0xbEf5f6d51CB62b58e6A8f77868681825C6fe21c1' as `0x${string}`,
+    decimals: 6,
+    flag: '🇪🇺',
+    logo: '🇪🇺',
+  },
+  {
+    symbol: 'FAJU',
+    name: 'Faju Token',
+    address: '0x3d77fAb8568f9c50C034311AA22088Cd045a30A0' as `0x${string}`,
+    decimals: 18,
+    flag: '⚡',
+    logo: '⚡',
+  },
+  {
+    symbol: 'ARCX',
+    name: 'ArcX Token',
+    address: '0x7F6E8965e03D4DC7e93ABa24bcA569E142BdD8dF' as `0x${string}`,
+    decimals: 18,
+    flag: '🔵',
+    logo: '🔵',
+  },
+  {
+    symbol: 'cirBTC',
+    name: 'Circle BTC',
+    address: '0x171A4217b86A807A64eB94757Db6849fb4bDbAA0' as `0x${string}`,
+    decimals: 8, // confirmed via decimals() call on-chain, mainnet
+    flag: '🟠',
+    logo: '🟠',
+  },
+] as const
+
+export type ArcMainnetToken = (typeof ARC_MAINNET_TOKENS)[number]

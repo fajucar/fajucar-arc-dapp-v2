@@ -104,7 +104,7 @@ export function ArcDexTestPool() {
       if (!publicClient) {
         throw new Error('Public client not available')
       }
-      // Par oficial USDC/EURC na Arc Testnet
+      // Par oficial USDC/EURC na Arc Mainnet
       const pairState = await readPairState(ARCDEX.pair, publicClient)
       setState(pairState)
       
@@ -146,6 +146,10 @@ export function ArcDexTestPool() {
   const handleAddLiquidity = async () => {
     if (!state || !address || !publicClient || !isConnected) {
       toast.error('Connect your wallet first')
+      return
+    }
+    if (ARCDEX.liquidityHelper === '0x0000000000000000000000000000000000000000') {
+      toast.error('LiquidityHelper isn\'t deployed on Arc Mainnet yet.')
       return
     }
 
@@ -254,7 +258,7 @@ export function ArcDexTestPool() {
 
           {isWrongChain && (
             <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-200 text-sm">
-              Connect to <strong>Arc Testnet</strong> (Chain ID {ARCDEX.chainId}) to view and add liquidity.
+              Connect to <strong>Arc Mainnet</strong> (Chain ID {ARCDEX.chainId}) to view and add liquidity.
             </div>
           )}
 

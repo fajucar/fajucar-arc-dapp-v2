@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useChainId } from 'wagmi'
 import { motion } from 'framer-motion'
 import { ExternalLink, Droplet, ChevronDown, ChevronUp } from 'lucide-react'
 import { CONSTANTS } from '@/config/constants'
@@ -13,6 +14,7 @@ const LINK_FAUCET_URL = 'https://faucets.chain.link/arc-testnet'
 export function GetTestTokensCard() {
   const [bridgeOpen, setBridgeOpen] = useState(false)
   const { address } = useArcWallet()
+  const chainId = useChainId()
 
   const handleGetLink = async () => {
     if (address) {
@@ -24,6 +26,23 @@ export function GetTestTokensCard() {
       }
     }
     window.open(LINK_FAUCET_URL, '_blank', 'noopener,noreferrer')
+  }
+
+  // Arc Mainnet é a rede padrão do app — este card de "test tokens" só faz
+  // sentido quando a wallet está de fato conectada na Arc Testnet.
+  if (chainId !== CONSTANTS.ARC_TESTNET_CHAIN_ID) {
+    return (
+      <a
+        href="https://bridge.usdc.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 w-full rounded-xl border border-slate-700/50 bg-slate-900/40 px-4 py-3 text-xs text-slate-400 hover:text-slate-200 hover:border-cyan-500/40 transition-colors"
+      >
+        <Droplet className="h-3.5 w-3.5 shrink-0" />
+        Get USDC via Circle Bridge
+        <ExternalLink className="h-3 w-3 shrink-0" />
+      </a>
+    )
   }
 
   return (

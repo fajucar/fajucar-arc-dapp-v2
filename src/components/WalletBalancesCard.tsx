@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useAccount, usePublicClient } from 'wagmi'
 import { formatUnits } from 'viem'
 import { Wallet, Eye, EyeOff, X, ChevronDown } from 'lucide-react'
-import { ARC_TESTNET_TOKENS } from '@/config/tokens.arc-testnet'
+import { ARC_MAINNET_TOKENS } from '@/config/tokens.arc-mainnet'
 import { formatMoney } from '@/lib/format'
 import { useTokenPrices } from '@/lib/tokenPrices'
 
@@ -99,7 +99,7 @@ export function WalletBalancesCard() {
 
     const loadBalances = async () => {
       try {
-        const tokens = ARC_TESTNET_TOKENS.filter((t) =>
+        const tokens = ARC_MAINNET_TOKENS.filter((t) =>
           (WALLET_TOKENS as readonly string[]).includes(t.symbol)
         )
 

@@ -2,7 +2,7 @@ import { createConfig } from '@privy-io/wagmi'
 import { http, fallback } from 'wagmi'
 import { injected, walletConnect } from 'wagmi/connectors'
 import { isMobileDevice } from '@/utils/device'
-import { arcTestnet } from './chains'
+import { arcMainnet, arcTestnet } from './chains'
 
 const isDev = (import.meta.env as { MODE?: string }).MODE === 'development'
 
@@ -46,7 +46,7 @@ const walletConnectConnector = hasValidProjectId
       showQrModal: !isMobile, // Desktop: QR modal; Mobile: deep link (wallet list)
       metadata: {
         name: 'FajuARC',
-        description: 'DeFi on Arc Testnet - Swap, Pools',
+        description: 'DeFi on Arc Mainnet - Swap, Pools',
         url: 'https://www.fajucar.xyz',
         icons: ['https://www.fajucar.xyz/favicon.ico'],
       },
@@ -84,11 +84,14 @@ const connectors = isMobile
       ]
 
 export const config = createConfig({
-  // DEP: mantenha o dApp restrito à Arc Testnet.
-  // Isso evita bugs de mismatch de chain/RPC (especialmente após confirmar na carteira).
-  chains: [arcTestnet],
+  // Arc Mainnet é a rede padrão do app; Arc Testnet continua disponível como
+  // opção secundária (desenvolvimento) — ver NetworkSwitchModal.tsx.
+  chains: [arcMainnet, arcTestnet],
   connectors,
   transports: {
+    [arcMainnet.id]: fallback(
+      arcMainnet.rpcUrls.default.http.map((url) => http(url))
+    ),
     [arcTestnet.id]: fallback(
       arcTestnet.rpcUrls.default.http.map((url) => http(url))
     ),

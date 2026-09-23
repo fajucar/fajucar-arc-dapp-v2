@@ -6,8 +6,8 @@ import { useState } from 'react'
 import { useWriteContract, usePublicClient } from 'wagmi'
 import { useWallets } from '@privy-io/react-auth'
 import { createWalletClient, custom, type Abi, type PublicClient } from 'viem'
-import { arcTestnet } from '@/config/chains'
-import { arcTestnet as privyArcTestnet } from '@/config/privy'
+import { arcMainnet } from '@/config/chains'
+import { arcMainnet as privyArcMainnet } from '@/config/privy'
 import { useArcWallet } from './useArcWallet'
 
 type WriteContractParams = {
@@ -88,11 +88,11 @@ export function useArcWriteContract() {
       setSocialPending(true)
       setSocialError(null)
       try {
-        await privyWallet.switchChain(privyArcTestnet.id)
+        await privyWallet.switchChain(privyArcMainnet.id)
         const provider = await privyWallet.getEthereumProvider()
         const walletClient = createWalletClient({
           account: from,
-          chain: arcTestnet,
+          chain: arcMainnet,
           transport: custom(provider),
         })
         const gas = publicClient
@@ -106,7 +106,7 @@ export function useArcWriteContract() {
           value: params.value,
           gas,
           account: from,
-          chain: arcTestnet,
+          chain: arcMainnet,
         })
         if (publicClient) await publicClient.waitForTransactionReceipt({ hash })
         return hash
@@ -138,7 +138,7 @@ export function useArcWriteContract() {
         value: params.value,
         gas,
         account: from,
-        chain: arcTestnet,
+        chain: arcMainnet,
       })
       if (publicClient) await publicClient.waitForTransactionReceipt({ hash })
       return hash

@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { useChainId, useAccount } from 'wagmi'
-import { ARC_TESTNET } from '@/config/chain'
+import { ARC_MAINNET } from '@/config/chain'
 import { Header } from './Header'
 import { Footer } from './Footer'
 import { NetworkBanner } from '@/components/NetworkBanner'
@@ -18,7 +18,7 @@ function LayoutContent({ children }: LayoutProps) {
   const { isOpen, closeModal } = useWalletModal()
   const { isConnected } = useAccount()
   const chainId = useChainId()
-  const isWrongNetwork = isConnected && chainId != null && chainId !== ARC_TESTNET.chainIdDec
+  const isWrongNetwork = isConnected && chainId != null && chainId !== ARC_MAINNET.chainIdDec
 
   // Mounted once here (Layout wraps every route) so the SSE connection for
   // scheduled-payment notifications survives navigation instead of

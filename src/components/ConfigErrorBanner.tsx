@@ -1,4 +1,4 @@
-import { configErrors } from '@/config/arcTestnet'
+import { configErrors } from '@/config/arcMainnet'
 
 export function ConfigErrorBanner() {
   if (!configErrors.length) return null

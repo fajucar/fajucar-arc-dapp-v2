@@ -10,7 +10,7 @@ import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { notifyTxExecuted } from '@/lib/notify'
 import { ARCDEX } from '@/config/arcDex'
-import { ARC_TESTNET_TOKENS } from '@/constants/tokens'
+import { ARC_MAINNET_TOKENS } from '@/constants/tokens'
 import { TokenSelectButton } from '@/components/TokenSelect'
 import { CONSTANTS } from '@/config/constants'
 import { EURC_ALTERNATIVE, ZERO_ADDRESS } from '@/config/tokens'
@@ -50,7 +50,7 @@ type LastSentSwapArgs = {
   deadline: string
 } | null
 
-const ARC_TESTNET_CHAIN_ID = CONSTANTS.ARC_TESTNET_CHAIN_ID
+const EXPECTED_CHAIN_ID = CONSTANTS.ARC_MAINNET_CHAIN_ID
 const SLIPPAGE_DEFAULT = 3
 // USDC é o token nativo de gas da Arc Testnet (precompile). Routers patchados suportam swap com ele.
 const USDC_NATIVE_ADDRESS = '0x3600000000000000000000000000000000000000'
@@ -357,12 +357,12 @@ interface Token {
   decimals: number
 }
 
-const TOKENS: Token[] = ARC_TESTNET_TOKENS.map((t) => ({
+const TOKENS: Token[] = ARC_MAINNET_TOKENS.map((t) => ({
   address: t.address,
   symbol: t.symbol,
   decimals: t.decimals,
 }))
-const SWAP_TOKEN_OPTIONS = ARC_TESTNET_TOKENS
+const SWAP_TOKEN_OPTIONS = ARC_MAINNET_TOKENS
 const SWAP_TOKENS: Token[] = TOKENS
 const DEFAULT_TOKEN_FROM = SWAP_TOKENS.find((token) => token.symbol === 'FAJU') ?? SWAP_TOKENS[0]!
 const DEFAULT_TOKEN_TO = SWAP_TOKENS.find((token) => token.symbol === 'EURC') ?? SWAP_TOKENS[1] ?? null
@@ -372,7 +372,7 @@ export function SwapInterface() {
   const publicClient = usePublicClient()
   const { switchChain } = useSwitchChain()
   const chainId = useChainId()
-  const isWrongChain = chainId != null && chainId !== ARC_TESTNET_CHAIN_ID
+  const isWrongChain = chainId != null && chainId !== EXPECTED_CHAIN_ID
 
   // Log na inicialização: Router oficial e Factory em uso (arcTestnet.ts → arcDex.ts)
   useEffect(() => {
@@ -518,14 +518,14 @@ export function SwapInterface() {
     loadBalance()
   }, [address, publicClient, tokenTo])
 
-  // Verificar se o Router suporta precompile tokens. Só na Arc Testnet.
+  // Verificar se o Router suporta precompile tokens. Só na rede esperada (EXPECTED_CHAIN_ID).
   // 1) Se supportsPrecompileTokens() existe e retorna true → OK
   // 2) Se retorna false → Router antigo
   // 3) Se a função não existe (ex.: Router oficial SingleHop) → fallback: getAmountsOut(1, [USDC,EURC])
   //    Se getAmountsOut funciona → Router operacional (permite swap)
   //    Se falha → null (não bloqueia; o swap mostrará o erro real)
   useEffect(() => {
-    if (!publicClient || !DEX_ROUTER_ADDRESS || chainId !== ARC_TESTNET_CHAIN_ID) {
+    if (!publicClient || !DEX_ROUTER_ADDRESS || chainId !== EXPECTED_CHAIN_ID) {
       setRouterSupportsPrecompile(null)
       return
     }
@@ -727,7 +727,7 @@ export function SwapInterface() {
     return () => { cancelled = true }
   }, [publicClient, address, tokenFrom, tokenTo, amountFrom, slippage, chainId])
 
-  // Calcular amountOut quando amountFrom muda (preview). Só na Arc Testnet.
+  // Calcular amountOut quando amountFrom muda (preview). Só na rede esperada.
   useEffect(() => {
     if (!tokenTo) {
       setAmountTo('')
@@ -740,8 +740,8 @@ export function SwapInterface() {
       return
     }
 
-    // Só calcular cotação quando conectado na Arc Testnet
-    if (chainId != null && chainId !== ARC_TESTNET_CHAIN_ID) {
+    // Só calcular cotação quando conectado na rede esperada
+    if (chainId != null && chainId !== EXPECTED_CHAIN_ID) {
       setAmountTo('—')
       return
     }
@@ -859,14 +859,14 @@ export function SwapInterface() {
     }
     if (isWrongChain && switchChain) {
       try {
-        toast.loading('Switching to Arc Testnet...')
-        await switchChain({ chainId: ARC_TESTNET_CHAIN_ID })
+        toast.loading('Switching to Arc Mainnet...')
+        await switchChain({ chainId: EXPECTED_CHAIN_ID })
         toast.dismiss()
         toast.success('Network changed. Click "Approve" again to approve.')
         return
       } catch (e) {
         toast.dismiss()
-        toast.error('Switch manually to Arc Testnet in MetaMask and try again.')
+        toast.error('Switch manually to Arc Mainnet in MetaMask and try again.')
         return
       }
     }
@@ -925,14 +925,14 @@ export function SwapInterface() {
     }
     if (isWrongChain && switchChain) {
       try {
-        toast.loading('Switching to Arc Testnet...')
-        await switchChain({ chainId: ARC_TESTNET_CHAIN_ID })
+        toast.loading('Switching to Arc Mainnet...')
+        await switchChain({ chainId: EXPECTED_CHAIN_ID })
         toast.dismiss()
         toast.success('Network changed. Click Swap again (wallet will open to approve the token).')
         return
       } catch (e) {
         toast.dismiss()
-        toast.error('Switch manually to Arc Testnet in MetaMask and try again.')
+        toast.error('Switch manually to Arc Mainnet in MetaMask and try again.')
         return
       }
     }
@@ -1926,7 +1926,7 @@ export function SwapInterface() {
             <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1 text-xs text-red-200/90">
               <span className="font-medium">Wrong network.</span>
-              {' '}Connect to <strong>Arc Testnet</strong> (Chain ID 5042002) to use Swap.
+              {' '}Connect to <strong>Arc Mainnet</strong> (Chain ID 5042) to use Swap.
             </div>
             <button
               type="button"
@@ -2039,7 +2039,7 @@ export function SwapInterface() {
           <div className="flex items-center gap-4">
             <TokenSelectButton
               tokens={[...SWAP_TOKEN_OPTIONS]}
-              selected={tokenFrom ? { address: tokenFrom.address, symbol: tokenFrom.symbol, name: ARC_TESTNET_TOKENS.find((t) => t.address === tokenFrom.address)?.name ?? tokenFrom.symbol, decimals: tokenFrom.decimals } : null}
+              selected={tokenFrom ? { address: tokenFrom.address, symbol: tokenFrom.symbol, name: ARC_MAINNET_TOKENS.find((t) => t.address === tokenFrom.address)?.name ?? tokenFrom.symbol, decimals: tokenFrom.decimals } : null}
               onSelect={(t) => setTokenFrom({ address: t.address, symbol: t.symbol, decimals: t.decimals })}
               excludedAddress={tokenTo?.address}
               accountAddress={address}
@@ -2083,7 +2083,7 @@ export function SwapInterface() {
           <div className="flex items-center gap-4">
             <TokenSelectButton
               tokens={[...SWAP_TOKEN_OPTIONS]}
-              selected={tokenTo ? { address: tokenTo.address, symbol: tokenTo.symbol, name: ARC_TESTNET_TOKENS.find((t) => t.address === tokenTo.address)?.name ?? tokenTo.symbol, decimals: tokenTo.decimals } : null}
+              selected={tokenTo ? { address: tokenTo.address, symbol: tokenTo.symbol, name: ARC_MAINNET_TOKENS.find((t) => t.address === tokenTo.address)?.name ?? tokenTo.symbol, decimals: tokenTo.decimals } : null}
               onSelect={(t) => setTokenTo({ address: t.address, symbol: t.symbol, decimals: t.decimals })}
               excludedAddress={tokenFrom.address}
               accountAddress={address}
@@ -2145,7 +2145,7 @@ export function SwapInterface() {
           <AlertCircle className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
           <div className="text-xs text-orange-200/90 space-y-1">
             <p className="font-medium text-orange-200">USDC is not compatible with swap on this Router</p>
-            <p>USDC is the native gas token of Arc Testnet (precompile). The current Router does not support swaps involving USDC — neither as input nor as output.</p>
+            <p>USDC is the native gas token of Arc Network (precompile). The current Router does not support swaps involving USDC — neither as input nor as output.</p>
             <p>💡 <strong>Pairs that work:</strong> <strong>FAJU ↔ EURC</strong>, <strong>FAJU ↔ ARCX</strong>, <strong>EURC ↔ ARCX</strong>.</p>
           </div>
         </div>
@@ -2158,7 +2158,7 @@ export function SwapInterface() {
           onClick={() => setShowNetworkModal(true)}
           className="w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white py-4 px-6 font-semibold text-lg hover:shadow-[0_0_24px_rgba(34,211,238,0.3)] transition-all duration-300"
         >
-          Connect to Arc Testnet
+          Connect to Arc Mainnet
         </motion.button>
       ) : (
         <motion.button

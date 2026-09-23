@@ -18,7 +18,7 @@ import { parseUnits, formatUnits } from 'viem'
 import { useArcWallet } from '@/hooks/useArcWallet'
 import { useScheduledPaymentSigner } from '@/hooks/useScheduledPaymentSigner'
 import { useArcWriteContract } from '@/hooks/useArcWriteContract'
-import { ARC_TESTNET_TOKENS } from '@/config/tokens.arc-testnet'
+import { ARC_MAINNET_TOKENS } from '@/config/tokens.arc-mainnet'
 import { ARCDEX } from '@/config/arcDex'
 import { notifyTxExecuted } from '@/lib/notify'
 import { ConfirmationCard } from './ConfirmationCard'
@@ -176,7 +176,7 @@ const CONTRACTS = {
 
 // ── Helper: find token by symbol ──────────────────────────────────────────────
 function token(sym: string) {
-  return ARC_TESTNET_TOKENS.find(t => t.symbol.toLowerCase() === sym.toLowerCase())
+  return ARC_MAINNET_TOKENS.find(t => t.symbol.toLowerCase() === sym.toLowerCase())
 }
 
 // ── Build the global toast payload for a confirmed chat-triggered action ─────

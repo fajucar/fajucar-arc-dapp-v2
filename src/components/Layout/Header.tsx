@@ -86,7 +86,7 @@ export function Header() {
         {/* Right: Network Badge + Theme Toggle + Wallet */}
         <div className="hidden md:flex items-center gap-3">
           <div className="rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-400 bg-slate-800/60 border border-slate-700/60">
-            Arc Testnet
+            Arc Mainnet
           </div>
           <button type="button" className="theme-toggle" onClick={toggleTheme}>
             {theme === 'dark-purple' ? '⬛ Black' : '🟣 Purple'}
@@ -118,7 +118,7 @@ export function Header() {
             <div className="px-4 py-4 space-y-2">
               <div className="flex items-center gap-2 mb-4">
                 <div className="rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-400 bg-slate-800/60 border border-slate-700/60 w-fit">
-                  Arc Testnet
+                  Arc Mainnet
                 </div>
                 <button type="button" className="theme-toggle" onClick={toggleTheme}>
                   {theme === 'dark-purple' ? '⬛ Black' : '🟣 Purple'}

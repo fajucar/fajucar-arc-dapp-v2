@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Globe } from 'lucide-react';
 import { switchToArcNetwork } from '../lib/wallet';
-import { ARC_TESTNET } from '../config/chain';
+import { ARC_MAINNET } from '../config/chain';
 
 interface NetworkBannerProps {
   currentChainId: number | null;
@@ -9,7 +9,7 @@ interface NetworkBannerProps {
 }
 
 export const NetworkBanner: React.FC<NetworkBannerProps> = ({ currentChainId, onSwitch }) => {
-  const isWrongNetwork = currentChainId !== ARC_TESTNET.chainIdDec;
+  const isWrongNetwork = currentChainId !== ARC_MAINNET.chainIdDec;
 
   if (!isWrongNetwork) {
     return null;
@@ -34,7 +34,7 @@ export const NetworkBanner: React.FC<NetworkBannerProps> = ({ currentChainId, on
         <div>
           <h4 className="text-amber-300 font-bold text-sm">Wrong Network</h4>
           <p className="text-amber-200/80 text-xs">
-            Please switch to {ARC_TESTNET.chainName} (Chain ID: {ARC_TESTNET.chainIdDec})
+            Please switch to {ARC_MAINNET.chainName} (Chain ID: {ARC_MAINNET.chainIdDec})
           </p>
         </div>
       </div>

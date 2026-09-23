@@ -22,7 +22,7 @@ import { useAllPools } from '@/hooks/usePools'
 import { ensureAllowance } from '@/lib/allowance'
 import { getPairAddress, readPairState } from '@/lib/arcDexRead'
 import { ARCDEX } from '@/config/arcDex'
-import { ARC_TESTNET_TOKENS } from '@/config/tokens.arc-testnet'
+import { ARC_MAINNET_TOKENS } from '@/config/tokens.arc-mainnet'
 import { TokenSelectButton } from '@/components/TokenSelect'
 import { toast } from 'react-hot-toast'
 import { formatMoney } from '@/lib/format'
@@ -31,7 +31,7 @@ import { TVLHeader } from '@/components/TVLHeader'
 import { ProfessionalPoolCard } from '@/components/ProfessionalPoolCard'
 import AddLiquidityModal from '@/components/AddLiquidityModal'
 import type { PoolMarketInfo } from '@/hooks/usePools'
-import type { ArcTestnetToken } from '@/config/tokens.arc-testnet'
+import type { ArcMainnetToken } from '@/config/tokens.arc-mainnet'
 
 const FACTORY_ABI = [
   { name: 'createPair', type: 'function', stateMutability: 'nonpayable', inputs: [{ name: 'tokenA', type: 'address' }, { name: 'tokenB', type: 'address' }], outputs: [{ name: 'pair', type: 'address' }] },
@@ -95,8 +95,8 @@ export function PoolsPage() {
 
   // Generic add — step 1: token selection
   const [genericAddOpen, setGenericAddOpen] = useState(false)
-  const [genericTokenA, setGenericTokenA] = useState<ArcTestnetToken | null>(null)
-  const [genericTokenB, setGenericTokenB] = useState<ArcTestnetToken | null>(null)
+  const [genericTokenA, setGenericTokenA] = useState<ArcMainnetToken | null>(null)
+  const [genericTokenB, setGenericTokenB] = useState<ArcMainnetToken | null>(null)
   const [balanceA, setBalanceA] = useState<string | null>(null)
   const [balanceB, setBalanceB] = useState<string | null>(null)
   const [pairReserves, setPairReserves] = useState<{ r0: number; r1: number; token0Addr: string } | null>(null)
@@ -312,7 +312,7 @@ export function PoolsPage() {
 
         {tab === 'v2' && isWrongChain && (
           <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-sm">
-            {t('pools.connectPrefix')} <strong>Arc Testnet</strong> {t('pools.connectSuffix')}
+            {t('pools.connectPrefix')} <strong>Arc Mainnet</strong> {t('pools.connectSuffix')}
           </div>
         )}
 
@@ -431,9 +431,9 @@ export function PoolsPage() {
                         )}
                       </div>
                       <TokenSelectButton
-                        tokens={[...ARC_TESTNET_TOKENS]}
+                        tokens={[...ARC_MAINNET_TOKENS]}
                         selected={genericTokenA}
-                        onSelect={(token) => setGenericTokenA(token as ArcTestnetToken)}
+                        onSelect={(token) => setGenericTokenA(token as ArcMainnetToken)}
                         excludedAddress={genericTokenB?.address}
                         showBalance
                         placeholder={t('pools.selectTokenA')}
@@ -449,9 +449,9 @@ export function PoolsPage() {
                         )}
                       </div>
                       <TokenSelectButton
-                        tokens={[...ARC_TESTNET_TOKENS]}
+                        tokens={[...ARC_MAINNET_TOKENS]}
                         selected={genericTokenB}
-                        onSelect={(token) => setGenericTokenB(token as ArcTestnetToken)}
+                        onSelect={(token) => setGenericTokenB(token as ArcMainnetToken)}
                         excludedAddress={genericTokenA?.address}
                         showBalance
                         placeholder={t('pools.selectTokenB')}

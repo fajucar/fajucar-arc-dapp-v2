@@ -12,7 +12,7 @@
  */
 
 import { createPublicClient, http, formatUnits } from 'viem'
-import { arcTestnet } from '@/config/chains'
+import { arcMainnet } from '@/config/chains'
 
 const ERC20_ABI = [
   {
@@ -29,7 +29,7 @@ const USDC_NATIVE_ADDRESS = '0x3600000000000000000000000000000000000000'
 
 // Client standalone para leitura de saldos — não precisa de carteira conectada
 export const arcReadClient = createPublicClient({
-  chain: arcTestnet,
+  chain: arcMainnet,
   transport: http(),
 })
 

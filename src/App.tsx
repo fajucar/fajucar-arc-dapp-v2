@@ -23,13 +23,13 @@ function HomePage() {
     return (
       <>
         <Helmet>
-          <title>FajuARC - DeFi on Arc Testnet</title>
-          <meta 
-            name="description" 
-            content="FajuARC: Swap and manage liquidity on Arc Testnet. Premium DeFi experience with USDC and EURC."
+          <title>FajuARC - DeFi on Arc Mainnet</title>
+          <meta
+            name="description"
+            content="FajuARC: Swap and manage liquidity on Arc Mainnet. Premium DeFi experience with USDC and EURC."
           />
           <meta property="og:title" content="FajuARC" />
-          <meta property="og:description" content="Premium DeFi on Arc Testnet" />
+          <meta property="og:description" content="Premium DeFi on Arc Mainnet" />
           <meta property="og:type" content="website" />
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content="Arc Network" />

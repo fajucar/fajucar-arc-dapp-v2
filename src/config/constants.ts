@@ -3,7 +3,7 @@ import { USDC_ADDRESS, EURC_ADDRESS } from './tokens'
 export const CONSTANTS = {
   // Network
   ARC_TESTNET_CHAIN_ID: 5042002,
-  ARC_MAINNET_CHAIN_ID: 1337,
+  ARC_MAINNET_CHAIN_ID: 5042,
   
   // Contracts - Arc Testnet (oficiais: Arc docs + Circle docs)
   USDC_ADDRESS,

@@ -2,13 +2,13 @@ import { useState, useCallback, useRef } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { createWalletClient, custom, getAddress, parseUnits, type WalletClient, type EIP1193Provider } from 'viem'
-import { arcTestnet } from '@/config/chains'
-import { arcTestnet as privyArcTestnet } from '@/config/privy'
+import { arcMainnet } from '@/config/chains'
+import { arcMainnet as privyArcMainnet } from '@/config/privy'
 import { CONSTANTS } from '@/config/constants'
 import { WALLETCONNECT_PROJECT_ID } from '@/config/wagmi'
 import { usePersistedPrivyWalletAddress } from './usePersistedPrivyWalletAddress'
 
-const CHAIN_ID_HEX = `0x${arcTestnet.id.toString(16)}`
+const CHAIN_ID_HEX = `0x${arcMainnet.id.toString(16)}`
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -29,10 +29,10 @@ async function ensureInjectedChain(eth: any): Promise<void> {
       method: 'wallet_addEthereumChain',
       params: [{
         chainId: CHAIN_ID_HEX,
-        chainName: arcTestnet.name,
-        nativeCurrency: arcTestnet.nativeCurrency,
-        rpcUrls: [...arcTestnet.rpcUrls.default.http],
-        blockExplorerUrls: [arcTestnet.blockExplorers.default.url],
+        chainName: arcMainnet.name,
+        nativeCurrency: arcMainnet.nativeCurrency,
+        rpcUrls: [...arcMainnet.rpcUrls.default.http],
+        blockExplorerUrls: [arcMainnet.blockExplorers.default.url],
       }],
     })
   }
@@ -263,8 +263,8 @@ export function useArcWallet(): ArcWalletState {
       const { EthereumProvider } = await import('@walletconnect/ethereum-provider')
       const provider = await EthereumProvider.init({
         projectId: WALLETCONNECT_PROJECT_ID,
-        optionalChains: [arcTestnet.id],
-        rpcMap: { [arcTestnet.id]: arcTestnet.rpcUrls.default.http[0] },
+        optionalChains: [arcMainnet.id],
+        rpcMap: { [arcMainnet.id]: arcMainnet.rpcUrls.default.http[0] },
         // Runs at the top level of our own page (not inside Privy's cross-origin
         // iframe), so its QR/deep-link modal (@reown/appkit) can actually trigger
         // the OS-level "open wallet app" hand-off on mobile, and return here after
@@ -272,13 +272,13 @@ export function useArcWallet(): ArcWalletState {
         showQrModal: true,
         metadata: {
           name: 'FajuARC',
-          description: 'DeFi on Arc Testnet - Swap, Pools',
+          description: 'DeFi on Arc Mainnet - Swap, Pools',
           url: typeof window !== 'undefined' ? window.location.origin : 'https://www.fajucar.xyz',
           icons: ['https://www.fajucar.xyz/favicon.ico'],
         },
       })
       await withTimeout(
-        provider.connect({ optionalChains: [arcTestnet.id] }),
+        provider.connect({ optionalChains: [arcMainnet.id] }),
         120000,
         'Wallet connection timed out. Try again.',
       )
@@ -300,11 +300,11 @@ export function useArcWallet(): ArcWalletState {
     const wallet = useWagmiForSigning ? null : signingPrivyWallet
     if (!wallet?.address) return null
     try {
-      await wallet.switchChain(privyArcTestnet.id)
+      await wallet.switchChain(privyArcMainnet.id)
       const provider = await wallet.getEthereumProvider()
       return createWalletClient({
         account: wallet.address as `0x${string}`,
-        chain: arcTestnet,
+        chain: arcMainnet,
         transport: custom(provider),
       })
     } catch (err) {
@@ -323,11 +323,11 @@ export function useArcWallet(): ArcWalletState {
     setPrivyPending(true)
     setPrivyError(null)
     try {
-      await wallet.switchChain(privyArcTestnet.id)
+      await wallet.switchChain(privyArcMainnet.id)
       const provider = await wallet.getEthereumProvider()
       const client = createWalletClient({
         account: wallet.address as `0x${string}`,
-        chain: arcTestnet,
+        chain: arcMainnet,
         transport: custom(provider),
       })
       const hash = await fn(client, wallet.address as `0x${string}`)
@@ -357,7 +357,7 @@ export function useArcWallet(): ArcWalletState {
         await ensureInjectedChain(provider)
         const client = createWalletClient({
           account: injectedAddress,
-          chain: arcTestnet,
+          chain: arcMainnet,
           transport: custom(provider),
         })
         const hash = await client.writeContract({
@@ -366,7 +366,7 @@ export function useArcWallet(): ArcWalletState {
           functionName: 'transfer',
           args: [to as `0x${string}`, amount],
           account: injectedAddress,
-          chain: arcTestnet,
+          chain: arcMainnet,
         })
         setTxHash(hash)
       } catch (err) {
@@ -392,7 +392,7 @@ export function useArcWallet(): ArcWalletState {
           functionName: 'transfer',
           args: [to as `0x${string}`, amount],
           account,
-          chain: arcTestnet,
+          chain: arcMainnet,
         })
       )
     } else {
