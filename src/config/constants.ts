@@ -23,7 +23,7 @@ export const CONSTANTS = {
     github: 'https://github.com/circle/arc',
     discord: 'https://discord.gg/arc',
     twitter: 'https://twitter.com/arcnetwork',
-    explorer: 'https://testnet.arcscan.app',
+    explorer: 'https://explorer.arc.io',
     // Primary faucet (backward compatibility)
     faucet: 'https://faucet.circle.com/',
     // Cross-chain: ETH Sepolia → USDC Sepolia → USDC Arc

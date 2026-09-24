@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { AddFundsButton } from './AddFundsButton'
 
 const COIN = ({ delay = 0 }: { delay?: number }) => (
   <motion.div
@@ -134,6 +135,9 @@ export function SocialPaymentIllustration() {
           </div>
         ))}
       </div>
+
+      {/* Add funds */}
+      <AddFundsButton />
 
       {/* powered by */}
       <motion.div

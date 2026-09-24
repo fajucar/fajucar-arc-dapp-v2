@@ -8,7 +8,6 @@ import { CONSTANTS } from '@/config/constants'
 const QUICK_LINKS = [
   { href: CONSTANTS.LINKS.docs, label: 'Docs' },
   { href: CONSTANTS.LINKS.explorer, label: 'Explorer' },
-  { href: CONSTANTS.LINKS.faucet, label: 'Faucet' },
   { href: CONSTANTS.LINKS.github, label: 'GitHub' },
 ] as const
 
